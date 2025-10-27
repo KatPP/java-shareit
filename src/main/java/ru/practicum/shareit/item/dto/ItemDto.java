@@ -1,7 +1,25 @@
 package ru.practicum.shareit.item.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import lombok.*;
+
+
 /**
- * TODO Sprint add-controllers.
+ * DTO для передачи данных вещи через REST API.
  */
+@Getter
+@Setter
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
 public class ItemDto {
+    private Long id;
+
+    @NotBlank(message = "Название не может быть пустым")
+    private String name;
+
+    @NotBlank(message = "Описание не может быть пустым")
+    private String description;
+
+    private Boolean available;
 }
