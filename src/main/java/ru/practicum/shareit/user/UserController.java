@@ -8,9 +8,6 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.service.UserService;
 
-/**
- * REST-контроллер для управления пользователями.
- */
 @RestController
 @RequestMapping("/users")
 @Slf4j
@@ -34,7 +31,7 @@ public class UserController {
 
     @PatchMapping("/{userId}")
     public UserDto update(@PathVariable Long userId,
-                          @Valid @RequestBody UserDto userDto) {
+                          @RequestBody UserDto userDto) {
         log.info("Обновление пользователя ID={}: {}", userId, userDto);
         UserDto updated = userService.update(userId, userDto);
         log.info("Пользователь обновлён: {}", updated);

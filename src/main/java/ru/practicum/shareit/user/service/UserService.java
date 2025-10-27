@@ -10,15 +10,14 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 
-/**
- * Сервис для управления пользователями с in-memory хранилищем.
- */
 @Service
 public class UserService {
 
     private final Map<Long, User> users = new HashMap<>();
     private final AtomicLong idGenerator = new AtomicLong(1);
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})$");
 
     public UserDto create(UserDto userDto) {
         validateUser(userDto);
@@ -37,8 +36,9 @@ public class UserService {
         String newEmail = userDto.getEmail();
         String newName = userDto.getName();
 
-        if (newEmail != null && !newEmail.equals(existingUser.getEmail())) {
-            if (isEmailExists(newEmail)) {
+        if (newEmail != null) {
+            validateEmail(newEmail);
+            if (!newEmail.equals(existingUser.getEmail()) && isEmailExists(newEmail)) {
                 throw new ConflictException("Email " + newEmail + " уже используется");
             }
         }
@@ -72,8 +72,15 @@ public class UserService {
         if (userDto.getName() == null || userDto.getName().isBlank()) {
             throw new ValidationException("Имя не может быть пустым");
         }
-        if (userDto.getEmail() == null || userDto.getEmail().isBlank()) {
+        validateEmail(userDto.getEmail());
+    }
+
+    private void validateEmail(String email) {
+        if (email == null || email.isBlank()) {
             throw new ValidationException("Email не может быть пустым");
+        }
+        if (!EMAIL_PATTERN.matcher(email).matches()) {
+            throw new ValidationException("Некорректный email");
         }
     }
 

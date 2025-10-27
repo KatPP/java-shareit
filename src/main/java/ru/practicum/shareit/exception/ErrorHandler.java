@@ -3,14 +3,11 @@ package ru.practicum.shareit.exception;
 import jakarta.validation.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-
-/**
- * Глобальный обработчик исключений для REST-контроллеров.
- */
 @RestControllerAdvice
 @Slf4j
 public class ErrorHandler {
@@ -20,6 +17,17 @@ public class ErrorHandler {
     public ErrorResponse handleValidation(ValidationException e) {
         log.error("Ошибка валидации: {}", e.getMessage());
         return new ErrorResponse(e.getMessage());
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .map(fieldError -> fieldError.getDefaultMessage())
+                .findFirst()
+                .orElse("Ошибка валидации");
+        log.error("Ошибка валидации: {}", message);
+        return new ErrorResponse(message);
     }
 
     @ExceptionHandler(ConflictException.class)

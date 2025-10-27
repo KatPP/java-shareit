@@ -9,9 +9,6 @@ import ru.practicum.shareit.item.service.ItemService;
 
 import java.util.List;
 
-/**
- * REST-контроллер для управления вещами.
- */
 @RestController
 @RequestMapping("/items")
 @Slf4j
@@ -25,8 +22,9 @@ public class ItemController {
     }
 
     @PostMapping
-    public ItemDto create(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public ItemDto create(@RequestHeader(value = "X-Sharer-User-Id", required = false) String userIdHeader,
                           @Valid @RequestBody ItemDto itemDto) {
+        Long userId = parseUserId(userIdHeader);
         log.info("Создание новой вещи пользователем ID={}: {}", userId, itemDto);
         ItemDto saved = itemService.create(userId, itemDto);
         log.info("Вещь создана: {}", saved);
@@ -34,9 +32,10 @@ public class ItemController {
     }
 
     @PatchMapping("/{itemId}")
-    public ItemDto update(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public ItemDto update(@RequestHeader(value = "X-Sharer-User-Id", required = false) String userIdHeader,
                           @PathVariable Long itemId,
-                          @Valid @RequestBody ItemDto itemDto) {
+                          @RequestBody ItemDto itemDto) { // ← @Valid удалён
+        Long userId = parseUserId(userIdHeader);
         log.info("Обновление вещи ID={} пользователем ID={}: {}", itemId, userId, itemDto);
         ItemDto updated = itemService.update(userId, itemId, itemDto);
         log.info("Вещь обновлена: {}", updated);
@@ -52,7 +51,8 @@ public class ItemController {
     }
 
     @GetMapping
-    public List<ItemDto> getOwnerItems(@RequestHeader("X-Sharer-User-Id") Long userId) {
+    public List<ItemDto> getOwnerItems(@RequestHeader(value = "X-Sharer-User-Id", required = false) String userIdHeader) {
+        Long userId = parseUserId(userIdHeader);
         log.info("Получение всех вещей владельца ID={}", userId);
         List<ItemDto> items = itemService.getOwnerItems(userId);
         log.info("Найдено {} вещей", items.size());
@@ -65,5 +65,20 @@ public class ItemController {
         List<ItemDto> results = itemService.search(text);
         log.info("Найдено {} результатов", results.size());
         return results;
+    }
+
+    private Long parseUserId(String userIdHeader) {
+        if (userIdHeader == null || userIdHeader.isBlank()) {
+            throw new jakarta.validation.ValidationException("Заголовок X-Sharer-User-Id обязателен");
+        }
+        try {
+            Long userId = Long.parseLong(userIdHeader);
+            if (userId <= 0) {
+                throw new jakarta.validation.ValidationException("Некорректный идентификатор пользователя");
+            }
+            return userId;
+        } catch (NumberFormatException e) {
+            throw new jakarta.validation.ValidationException("Некорректный идентификатор пользователя");
+        }
     }
 }
