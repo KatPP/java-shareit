@@ -8,10 +8,21 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+/**
+ * Глобальный обработчик исключений для всех REST-контроллеров приложения ShareIt.
+ * Перехватывает стандартные и кастомные исключения, логирует их и возвращает
+ * клиенту понятные сообщения об ошибках в формате JSON с соответствующим HTTP-статусом.
+ */
 @RestControllerAdvice
 @Slf4j
 public class ErrorHandler {
 
+    /**
+     * Обрабатывает исключения валидации, возникающие при нарушении бизнес-правил
+     * (например, пустое имя или некорректный email).
+     * @param e исключение валидации
+     * @return объект с сообщением об ошибке
+     */
     @ExceptionHandler(ValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleValidation(ValidationException e) {
@@ -19,6 +30,13 @@ public class ErrorHandler {
         return new ErrorResponse(e.getMessage());
     }
 
+    /**
+     * Обрабатывает исключения валидации, возникающие при нарушении ограничений,
+     * заданных аннотациями валидации (например, {@code @NotBlank}, {@code @Email})
+     * в DTO-объектах при использовании {@code @Valid}.
+     * @param e исключение валидации аргументов метода контроллера
+     * @return объект с первым найденным сообщением об ошибке
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
@@ -30,6 +48,12 @@ public class ErrorHandler {
         return new ErrorResponse(message);
     }
 
+    /**
+     * Обрабатывает конфликты данных, например, попытку создания пользователя
+     * с уже существующим email.
+     * @param e исключение конфликта
+     * @return объект с сообщением об ошибке
+     */
     @ExceptionHandler(ConflictException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleConflict(ConflictException e) {
@@ -37,6 +61,12 @@ public class ErrorHandler {
         return new ErrorResponse(e.getMessage());
     }
 
+    /**
+     * Обрабатывает ситуации, когда запрашиваемая сущность (пользователь, вещь и т.д.)
+     * не найдена в системе.
+     * @param e исключение "не найдено"
+     * @return объект с сообщением об ошибке
+     */
     @ExceptionHandler(NotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleNotFound(NotFoundException e) {
@@ -44,6 +74,13 @@ public class ErrorHandler {
         return new ErrorResponse(e.getMessage());
     }
 
+    /**
+     * Обрабатывает все остальные непредвиденные исключения.
+     * В целях безопасности клиенту возвращается общее сообщение,
+     * а полная информация об ошибке логируется на сервере.
+     * @param e любое неперехваченное исключение
+     * @return объект с общим сообщением об ошибке
+     */
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleGeneral(Exception e) {

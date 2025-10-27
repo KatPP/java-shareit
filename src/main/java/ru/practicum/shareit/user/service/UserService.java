@@ -8,10 +8,16 @@ import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.User;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
+/**
+ * Сервис для управления пользователями в системе ShareIt.
+ * Реализует основные операции: создание, обновление, получение и удаление пользователей.
+ * Хранение данных осуществляется в памяти (in-memory), без использования базы данных.
+ */
 @Service
 public class UserService {
 
@@ -19,6 +25,14 @@ public class UserService {
     private final AtomicLong idGenerator = new AtomicLong(1);
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})$");
 
+    /**
+     * Создаёт нового пользователя на основе переданного DTO.
+     *
+     * @param userDto данные нового пользователя (имя и email)
+     * @return созданный пользователь в формате DTO
+     * @throws ValidationException если имя или email не прошли валидацию
+     * @throws ConflictException   если пользователь с таким email уже существует
+     */
     public UserDto create(UserDto userDto) {
         validateUser(userDto);
         if (isEmailExists(userDto.getEmail())) {
@@ -31,6 +45,18 @@ public class UserService {
         return UserMapper.toUserDto(user);
     }
 
+    /**
+     * Обновляет данные существующего пользователя по его идентификатору.
+     * Можно обновлять только имя, только email или оба поля одновременно.
+     * Если email изменяется, проверяется его уникальность.
+     *
+     * @param userId  идентификатор пользователя
+     * @param userDto DTO с новыми данными (имя и/или email)
+     * @return обновлённый пользователь в формате DTO
+     * @throws NotFoundException   если пользователь с указанным ID не найден
+     * @throws ValidationException если email не соответствует формату или пуст
+     * @throws ConflictException   если новый email уже используется другим пользователем
+     */
     public UserDto update(Long userId, UserDto userDto) {
         User existingUser = getUserById(userId);
         String newEmail = userDto.getEmail();
@@ -49,14 +75,33 @@ public class UserService {
         return UserMapper.toUserDto(existingUser);
     }
 
+    /**
+     * Возвращает пользователя по его идентификатору.
+     * @param userId идентификатор пользователя
+     * @return пользователь в формате DTO
+     * @throws NotFoundException если пользователь с указанным ID не найден
+     */
     public UserDto getById(Long userId) {
         return UserMapper.toUserDto(getUserById(userId));
     }
 
+    /**
+     * Удаляет пользователя по его идентификатору.
+     *
+     * @param userId идентификатор пользователя
+     */
     public void delete(Long userId) {
         users.remove(userId);
     }
 
+    /**
+     * Внутренний метод для получения модели пользователя по ID.
+     * Используется внутри сервиса.
+     *
+     * @param userId идентификатор пользователя
+     * @return модель пользователя
+     * @throws NotFoundException если пользователь не найден
+     */
     public User getUserById(Long userId) {
         User user = users.get(userId);
         if (user == null) {
@@ -65,6 +110,12 @@ public class UserService {
         return user;
     }
 
+    /**
+     * Проверяет корректность данных пользователя при создании.
+     *
+     * @param userDto данные пользователя
+     * @throws ValidationException если имя или email пусты или некорректны
+     */
     private void validateUser(UserDto userDto) {
         if (userDto == null) {
             throw new ValidationException("Данные пользователя не могут быть null");
@@ -75,6 +126,12 @@ public class UserService {
         validateEmail(userDto.getEmail());
     }
 
+    /**
+     * Проверяет корректность email-адреса по регулярному выражению.
+     *
+     * @param email email для проверки
+     * @throws ValidationException если email пуст или не соответствует формату
+     */
     private void validateEmail(String email) {
         if (email == null || email.isBlank()) {
             throw new ValidationException("Email не может быть пустым");
@@ -84,6 +141,12 @@ public class UserService {
         }
     }
 
+    /**
+     * Проверяет, существует ли пользователь с указанным email (регистронезависимо).
+     *
+     * @param email email для проверки
+     * @return {@code true}, если такой email уже используется, иначе {@code false}
+     */
     private boolean isEmailExists(String email) {
         return users.values().stream()
                 .anyMatch(u -> u.getEmail().equalsIgnoreCase(email));
