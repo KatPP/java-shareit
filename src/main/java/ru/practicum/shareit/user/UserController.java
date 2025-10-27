@@ -12,10 +12,8 @@ import ru.practicum.shareit.user.service.UserService;
 
 /**
  * REST-контроллер для управления пользователями в системе ShareIt.
- * <p>
  * Предоставляет эндпоинты для создания, обновления, получения и удаления пользователей.
  * Все операции выполняются через {@link UserService}.
- * </p>
  */
 @RestController
 @RequestMapping("/users")
@@ -52,10 +50,8 @@ public class UserController {
 
     /**
      * Частично обновляет данные существующего пользователя по его ID.
-     * <p>
      * Можно обновлять только имя, только email или оба поля.
      * Если email изменяется, проверяется его уникальность.
-     * </p>
      *
      * @param userId  идентификатор пользователя
      * @param userDto DTO с полями для обновления (остальные поля могут быть null)
@@ -74,7 +70,6 @@ public class UserController {
 
     /**
      * Возвращает данные пользователя по его идентификатору.
-     *
      * @param userId идентификатор пользователя
      * @return данные пользователя
      * @throws NotFoundException если пользователь не найден
@@ -89,7 +84,6 @@ public class UserController {
 
     /**
      * Удаляет пользователя по его идентификатору.
-     *
      * @param userId идентификатор пользователя
      */
     @DeleteMapping("/{userId}")
