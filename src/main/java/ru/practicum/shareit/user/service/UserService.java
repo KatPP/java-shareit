@@ -77,6 +77,7 @@ public class UserService {
 
     /**
      * Возвращает пользователя по его идентификатору.
+     *
      * @param userId идентификатор пользователя
      * @return пользователь в формате DTO
      * @throws NotFoundException если пользователь с указанным ID не найден
