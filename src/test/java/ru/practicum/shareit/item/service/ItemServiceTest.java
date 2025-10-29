@@ -27,7 +27,7 @@ class ItemServiceTest {
 
     @Test
     @DisplayName("Должен создавать новую вещь для существующего пользователя")
-    void shouldCreateItem() {
+    void createItem_forExistingUser_createsSuccessfully() {
         UserDto userDto = new UserDto(null, "Alice", "alice@example.com");
         UserDto owner = userService.create(userDto);
 
@@ -42,14 +42,14 @@ class ItemServiceTest {
 
     @Test
     @DisplayName("Должен выбрасывать NotFoundException при создании вещи для несуществующего пользователя")
-    void shouldThrowNotFoundWhenCreatingItemForNonExistentUser() {
+    void createItem_forNonExistentUser_throwsNotFound() {
         ItemDto itemDto = new ItemDto(null, "Drill", "Powerful drill", true);
         assertThrows(NotFoundException.class, () -> itemService.create(999L, itemDto));
     }
 
     @Test
     @DisplayName("Должен находить вещи по тексту в названии или описании (только доступные)")
-    void shouldSearchItemsByText() {
+    void searchByText_returnsAvailableItems() {
         UserDto user = userService.create(new UserDto(null, "Alice", "alice@example.com"));
         itemService.create(user.getId(), new ItemDto(null, "Drill", "Powerful drill", true));
         itemService.create(user.getId(), new ItemDto(null, "Hammer", "Steel hammer", true));
@@ -63,7 +63,7 @@ class ItemServiceTest {
 
     @Test
     @DisplayName("Должен возвращать пустой список при поиске недоступных вещей")
-    void shouldReturnEmptyListWhenSearchingUnavailableItems() {
+    void searchUnavailableItems_returnsEmpty() {
         UserDto user = userService.create(new UserDto(null, "Alice", "alice@example.com"));
         itemService.create(user.getId(), new ItemDto(null, "Drill", "Powerful drill", false));
 
@@ -74,7 +74,7 @@ class ItemServiceTest {
 
     @Test
     @DisplayName("Должен выбрасывать NotFoundException при попытке обновить чужую вещь")
-    void shouldThrowNotFoundWhenUpdatingItemByNonOwner() {
+    void updateItem_byNonOwner_throwsNotFound() {
         UserDto owner = userService.create(new UserDto(null, "Owner", "owner@example.com"));
         UserDto other = userService.create(new UserDto(null, "Other", "other@example.com"));
 

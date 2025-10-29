@@ -33,7 +33,7 @@ class UserServiceTest {
 
     @Test
     @DisplayName("Должен выбрасывать исключение ConflictException при попытке создать пользователя с уже существующим email")
-    void shouldThrowConflictExceptionWhenEmailAlreadyExists() {
+    void createDuplicateEmail_throwsConflict() {
         UserDto user1 = new UserDto(null, "Alice", "alice@example.com");
         UserDto user2 = new UserDto(null, "Bob", "alice@example.com");
 
@@ -44,13 +44,13 @@ class UserServiceTest {
 
     @Test
     @DisplayName("Должен выбрасывать исключение NotFoundException при попытке получить несуществующего пользователя")
-    void shouldThrowNotFoundExceptionWhenGettingNonExistentUser() {
+    void getById_nonExistent_throwsNotFound() {
         assertThrows(NotFoundException.class, () -> userService.getById(999L));
     }
 
     @Test
     @DisplayName("Должен обновлять email пользователя")
-    void shouldUpdateUserEmail() {
+    void updateEmail_updatesUser() {
         UserDto userDto = new UserDto(null, "Alice", "alice@example.com");
         UserDto saved = userService.create(userDto);
 
@@ -62,7 +62,7 @@ class UserServiceTest {
 
     @Test
     @DisplayName("Должен выбрасывать ConflictException при обновлении пользователя на email другого пользователя")
-    void shouldThrowConflictOnUpdateWithExistingEmail() {
+    void updateToExistingEmail_throwsConflict() {
         UserDto user1 = new UserDto(null, "Alice", "alice@example.com");
         UserDto user2 = new UserDto(null, "Bob", "bob@example.com");
 
