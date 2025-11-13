@@ -39,14 +39,14 @@ public class ItemController {
     }
 
     @PostMapping
-    public ItemDto create(@RequestHeader("X-Sharer-User-Id") String userIdHeader,
+    public ItemDto create(@RequestHeader(value = "X-Sharer-User-Id", required = false) String userIdHeader,
                           @RequestBody ItemDto itemDto) {
         Long userId = parseUserIdHeader(userIdHeader);
         return itemService.create(userId, itemDto);
     }
 
     @PatchMapping("/{itemId}")
-    public ItemDto update(@RequestHeader("X-Sharer-User-Id") String userIdHeader,
+    public ItemDto update(@RequestHeader(value = "X-Sharer-User-Id", required = false) String userIdHeader,
                           @PathVariable Long itemId,
                           @RequestBody ItemDto itemDto) {
         Long userId = parseUserIdHeader(userIdHeader);
@@ -61,7 +61,7 @@ public class ItemController {
     }
 
     @GetMapping
-    public List<ItemResponseDto> getOwnerItems(@RequestHeader("X-Sharer-User-Id") String userIdHeader) {
+    public List<ItemResponseDto> getOwnerItems(@RequestHeader(value = "X-Sharer-User-Id", required = false) String userIdHeader) {
         Long userId = parseUserIdHeader(userIdHeader);
         return itemService.getOwnerItemsWithBookingsAndComments(userId);
     }
@@ -72,7 +72,7 @@ public class ItemController {
     }
 
     @PostMapping("/{itemId}/comment")
-    public CommentDto addComment(@RequestHeader("X-Sharer-User-Id") String userIdHeader,
+    public CommentDto addComment(@RequestHeader(value = "X-Sharer-User-Id", required = false) String userIdHeader,
                                  @PathVariable Long itemId,
                                  @RequestBody CommentDto commentDto) {
         Long userId = parseUserIdHeader(userIdHeader);
