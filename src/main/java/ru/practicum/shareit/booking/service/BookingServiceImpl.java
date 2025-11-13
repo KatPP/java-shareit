@@ -11,6 +11,7 @@ import ru.practicum.shareit.booking.mapper.BookingMapper;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.model.BookingStatus;
 import ru.practicum.shareit.booking.repository.BookingRepository;
+import ru.practicum.shareit.exception.AccessDeniedException;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.user.service.UserService;
@@ -64,7 +65,7 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponseDto approve(Long ownerId, Long bookingId, Boolean approved) {
         Booking booking = getBookingOrThrow(bookingId);
         if (!booking.getItem().getOwner().getId().equals(ownerId)) {
-            throw new NotFoundException("Бронирование не найдено");
+            throw new AccessDeniedException("Вы не являетесь владельцем вещи");
         }
         if (booking.getStatus() != WAITING) {
             throw new ValidationException("Нельзя подтвердить/отклонить уже обработанное бронирование");

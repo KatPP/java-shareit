@@ -1,5 +1,6 @@
 package ru.practicum.shareit.booking;
 
+import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.booking.dto.BookingDto;
@@ -15,9 +16,25 @@ public class BookingController {
 
     private final BookingService bookingService;
 
+    private Long parseUserIdHeader(String userIdHeader) {
+        if (userIdHeader == null || userIdHeader.isBlank()) {
+            throw new ValidationException("Заголовок X-Sharer-User-Id обязателен");
+        }
+        try {
+            Long userId = Long.parseLong(userIdHeader);
+            if (userId <= 0) {
+                throw new ValidationException("Некорректный идентификатор пользователя");
+            }
+            return userId;
+        } catch (NumberFormatException e) {
+            throw new ValidationException("Некорректный идентификатор пользователя");
+        }
+    }
+
     @PostMapping
-    public BookingResponseDto create(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public BookingResponseDto create(@RequestHeader("X-Sharer-User-Id") String userIdHeader,
                                      @RequestBody BookingDto bookingDto) {
+        Long userId = parseUserIdHeader(userIdHeader); // <-- валидация здесь
         return bookingService.create(userId, bookingDto);
     }
 
