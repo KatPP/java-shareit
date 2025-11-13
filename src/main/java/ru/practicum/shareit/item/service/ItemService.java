@@ -1,55 +1,115 @@
 package ru.practicum.shareit.item.service;
 
 import jakarta.validation.ValidationException;
-import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.repository.BookingRepository;
+import ru.practicum.shareit.comment.Comment;
+import ru.practicum.shareit.comment.dto.CommentDto;
+import ru.practicum.shareit.comment.mapper.CommentMapper;
+import ru.practicum.shareit.comment.repository.CommentRepository;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemResponseDto;
 import ru.practicum.shareit.item.mapper.ItemMapper;
+import ru.practicum.shareit.item.mapper.ItemResponseMapper;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.service.UserService;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-
-import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Сервис для управления вещами с in-memory хранилищем.
+ * Сервис для управления вещами (items) в системе ShareIt.
+ * <p>
+ * Обеспечивает полную бизнес-логику по работе с вещами:
+ * создание, обновление, поиск, просмотр с информацией о бронировании и отзывами.
+ * </p>
+ * <p>
+ * Все изменяющие данные операции помечены аннотацией {@link Transactional},
+ * а операции только для чтения — аннотацией {@code @Transactional(readOnly = true)}.
+ * </p>
+ *
+ * @see Item
+ * @see ItemDto
+ * @see ItemResponseDto
+ * @see ItemRepository
  */
 @Service
-@Slf4j
+@RequiredArgsConstructor
 public class ItemService {
 
-    private final Map<Long, Item> items = new HashMap<>();
-    private final AtomicLong idGenerator = new AtomicLong(1);
+    /**
+     * Репозиторий для выполнения операций с сущностью {@link Item} в базе данных.
+     */
+    private final ItemRepository itemRepository;
+
+    /**
+     * Сервис для работы с пользователями.
+     */
     private final UserService userService;
 
-    @Autowired
-    public ItemService(UserService userService) {
-        this.userService = userService;
-    }
+    /**
+     * Репозиторий для работы с бронированиями, необходим для получения дат
+     * последнего и следующего бронирования.
+     */
+    private final BookingRepository bookingRepository;
 
+    /**
+     * Репозиторий для работы с отзывами (комментариями).
+     */
+    private final CommentRepository commentRepository;
+
+    /**
+     * Создаёт новую вещь для указанного пользователя.
+     * <p>
+     * Владельцем вещи становится пользователь с указанным ID.
+     * Вещь должна иметь название, описание и статус доступности.
+     * </p>
+     *
+     * @param userId   идентификатор владельца вещи
+     * @param itemDto  данные новой вещи
+     * @return созданная вещь в формате {@link ItemDto}
+     * @throws ValidationException если данные вещи не прошли валидацию
+     * @throws NotFoundException   если пользователь с указанным ID не найден
+     */
+    @Transactional
     public ItemDto create(Long userId, ItemDto itemDto) {
-        log.info("Создание вещи пользователем ID={}: {}", userId, itemDto);
-        validateUserId(userId);
         validateItemDto(itemDto);
+        User owner = userService.getUserById(userId);
         Item item = ItemMapper.toItem(itemDto);
-        item.setId(idGenerator.getAndIncrement());
-        item.setOwner(userService.getUserById(userId));
-        items.put(item.getId(), item);
-        log.info("Вещь создана с ID={}", item.getId());
-        return ItemMapper.toItemDto(item);
+        item.setOwner(owner);
+        Item saved = itemRepository.save(item);
+        return ItemMapper.toItemDto(saved);
     }
 
+    /**
+     * Обновляет данные существующей вещи.
+     * <p>
+     * Обновление может включать любое подмножество полей: {@code name},
+     * {@code description}, {@code available}. Обновлять вещь может только её владелец.
+     * </p>
+     *
+     * @param userId   идентификатор пользователя, пытающегося обновить вещь
+     * @param itemId   идентификатор обновляемой вещи
+     * @param itemDto  DTO с полями для обновления (остальные поля могут быть null)
+     * @return обновлённая вещь в формате {@link ItemDto}
+     * @throws NotFoundException   если вещь не найдена или пользователь не является её владельцем
+     * @throws ValidationException если переданы некорректные данные
+     */
+    @Transactional
     public ItemDto update(Long userId, Long itemId, ItemDto itemDto) {
-        log.info("Обновление вещи ID={} пользователем ID={}: {}", itemId, userId, itemDto);
-        validateUserId(userId);
-        Item item = getItemOrThrow(itemId);
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new NotFoundException("Вещь с ID " + itemId + " не найдена"));
+
         if (!item.getOwner().getId().equals(userId)) {
-            log.warn("Попытка обновить чужую вещь ID={}, владелец={}", itemId, item.getOwner().getId());
             throw new NotFoundException("Вещь не найдена");
         }
 
@@ -63,79 +123,135 @@ public class ItemService {
             item.setAvailable(itemDto.getAvailable());
         }
 
-        log.info("Вещь обновлена: {}", item);
-        return ItemMapper.toItemDto(item);
+        return ItemMapper.toItemDto(itemRepository.save(item));
     }
 
-    public ItemDto getById(Long itemId) {
-        Item item = items.get(itemId);
-        if (item == null) {
-            log.warn("Вещь с ID={} не найдена", itemId);
-            throw new NotFoundException("Вещь с ID " + itemId + " не найдена");
-        }
-        log.info("Вещь найдена: {}", item);
-        return ItemMapper.toItemDto(item);
+    /**
+     * Возвращает данные вещи по её идентификатору с информацией о бронировании и отзывах.
+     * <p>
+     * Заголовок {@code X-Sharer-User-Id} не обязателен для этого метода.
+     * Но если он присутствует, может использоваться в будущем для дополнительной логики.
+     * </p>
+     *
+     * @param itemId идентификатор вещи
+     * @param userId идентификатор запрашивающего пользователя (может быть null)
+     * @return расширенный DTO вещи с бронированиями и комментариями
+     * @throws NotFoundException если вещь не найдена
+     */
+    @Transactional(readOnly = true)
+    public ItemResponseDto getByIdWithBookingsAndComments(Long itemId, Long userId) {
+        Item item = getItemById(itemId);
+        return ItemResponseMapper.toItemResponseDto(item, bookingRepository, commentRepository);
     }
 
-    public List<ItemDto> getOwnerItems(Long userId) {
-        log.info("Получение всех вещей владельца ID={}", userId);
-        userService.getUserById(userId);
-        List<ItemDto> ownerItems = items.values().stream()
-                .filter(item -> item.getOwner().getId().equals(userId))
-                .map(ItemMapper::toItemDto)
+    /**
+     * Возвращает список всех вещей указанного владельца с датами бронирования и отзывами.
+     *
+     * @param userId идентификатор владельца
+     * @return список расширенных DTO вещей
+     * @throws NotFoundException если владелец не найден
+     */
+    @Transactional(readOnly = true)
+    public List<ItemResponseDto> getOwnerItemsWithBookingsAndComments(Long userId) {
+        userService.getUserById(userId); // проверка существования
+        return itemRepository.findByOwnerIdOrderById(userId).stream()
+                .map(item -> ItemResponseMapper.toItemResponseDto(item, bookingRepository, commentRepository))
                 .collect(Collectors.toList());
-        log.info("Найдено {} вещей", ownerItems.size());
-        return ownerItems;
     }
 
+    /**
+     * Выполняет поиск вещей по текстовому запросу в названии или описании.
+     * <p>
+     * В результаты включаются только доступные для аренды вещи ({@code available = true}).
+     * Поиск регистронезависимый.
+     * </p>
+     *
+     * @param text текст поискового запроса
+     * @return список подходящих вещей в формате {@link ItemDto}
+     */
+    @Transactional(readOnly = true)
     public List<ItemDto> search(String text) {
         if (text == null || text.isBlank()) {
-            log.info("Поиск по пустому тексту — возвращаем пустой список");
             return Collections.emptyList();
         }
-        String query = text.toLowerCase();
-        List<ItemDto> results = items.values().stream()
-                .filter(Item::getAvailable)
-                .filter(item -> item.getName().toLowerCase().contains(query) ||
-                        item.getDescription().toLowerCase().contains(query))
+        return itemRepository.search(text).stream()
                 .map(ItemMapper::toItemDto)
                 .collect(Collectors.toList());
-        log.info("Поиск по тексту '{}': найдено {} результатов", text, results.size());
-        return results;
     }
 
-    private void validateUserId(Long userId) {
-        if (userId == null || userId <= 0) {
-            log.error("Некорректный идентификатор пользователя: {}", userId);
-            throw new ValidationException("Некорректный идентификатор пользователя");
+    /**
+     * Добавляет новый комментарий к вещи.
+     * <p>
+     * Комментарий может оставить только пользователь, у которого:
+     * <ul>
+     *   <li>было завершённое бронирование этой вещи,</li>
+     *   <li>статус бронирования — APPROVED,</li>
+     *   <li>текущее время — после окончания срока аренды.</li>
+     * </ul>
+     * </p>
+     *
+     * @param userId   идентификатор автора комментария
+     * @param itemId   идентификатор вещи
+     * @param commentDto данные комментария (текст)
+     * @return созданный комментарий в формате {@link CommentDto}
+     * @throws ValidationException если пользователь не имеет права оставлять комментарий
+     * @throws NotFoundException   если вещь не найдена
+     */
+    @Transactional
+    public CommentDto addComment(Long userId, Long itemId, CommentDto commentDto) {
+        User author = userService.getUserById(userId);
+        Item item = getItemById(itemId);
+
+        boolean hasApprovedBooking = bookingRepository.existsByItemIdAndBookerIdAndEndIsBefore(
+                itemId, userId, LocalDateTime.now()
+        );
+
+        if (!hasApprovedBooking) {
+            throw new ValidationException("Нельзя оставить отзыв без завершённого бронирования");
         }
+
+        Comment comment = new Comment();
+        comment.setText(commentDto.getText());
+        comment.setItem(item);
+        comment.setAuthor(author);
+        comment.setCreated(LocalDateTime.now());
+
+        return CommentMapper.toCommentDto(commentRepository.save(comment));
     }
 
+    /**
+     * Возвращает модель вещи по её идентификатору.
+     * <p>
+     * Используется внутри других сервисов (например, в BookingService).
+     * </p>
+     *
+     * @param id идентификатор вещи
+     * @return объект модели {@link Item}
+     * @throws NotFoundException если вещь не найдена
+     */
+    public Item getItemById(Long id) {
+        return itemRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Вещь с ID " + id + " не найдена"));
+    }
+
+    /**
+     * Проверяет корректность данных вещи при создании.
+     *
+     * @param itemDto данные вещи
+     * @throws ValidationException если название, описание или статус доступности отсутствуют
+     */
     private void validateItemDto(ItemDto itemDto) {
         if (itemDto == null) {
-            log.error("Данные вещи не могут быть null");
             throw new ValidationException("Данные вещи не могут быть null");
         }
         if (itemDto.getName() == null || itemDto.getName().isBlank()) {
-            log.error("Название вещи не может быть пустым");
             throw new ValidationException("Название вещи не может быть пустым");
         }
         if (itemDto.getDescription() == null || itemDto.getDescription().isBlank()) {
-            log.error("Описание вещи не может быть пустым");
             throw new ValidationException("Описание вещи не может быть пустым");
         }
         if (itemDto.getAvailable() == null) {
-            log.error("Статус доступности (available) обязателен");
             throw new ValidationException("Статус доступности (available) обязателен");
         }
-    }
-
-    private Item getItemOrThrow(Long itemId) {
-        Item item = items.get(itemId);
-        if (item == null) {
-            log.warn("Вещь с ID={} не найдена", itemId);
-            throw new NotFoundException("Вещь с ID " + itemId + " не найдена");
-        }
-        return item;
     }
 }
