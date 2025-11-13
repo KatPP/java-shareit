@@ -11,7 +11,6 @@ import ru.practicum.shareit.booking.mapper.BookingMapper;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.model.BookingStatus;
 import ru.practicum.shareit.booking.repository.BookingRepository;
-import ru.practicum.shareit.exception.AccessDeniedException;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.user.service.UserService;
@@ -22,6 +21,17 @@ import java.util.stream.Collectors;
 
 import static ru.practicum.shareit.booking.model.BookingStatus.*;
 
+/**
+ * Сервис для управления бронированием в системе ShareIt.
+ * <p>
+ * Обеспечивает полную бизнес-логику по работе с бронированием:
+ * создание, подтверждение, просмотр, список.
+ * </p>
+ *
+ * @see Booking
+ * @see BookingDto
+ * @see BookingRepository
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -41,13 +51,13 @@ public class BookingServiceImpl implements BookingService {
             throw new ValidationException("Данные бронирования не могут быть null");
         }
         var item = itemService.getItemById(bookingDto.getItemId());
-        if (item.getOwner().getId().equals(bookerId)) {
-            throw new ValidationException("Нельзя забронировать собственную вещь");
-        }
         if (!item.getAvailable()) {
             throw new ValidationException("Вещь недоступна для бронирования");
         }
-        if (!bookingDto.getStart().isBefore(bookingDto.getEnd())) {
+        if (item.getOwner().getId().equals(bookerId)) {
+            throw new ValidationException("Нельзя забронировать собственную вещь");
+        }
+        if (!bookingDto.getStart().isBefore(bookingDto.getEnd()) || bookingDto.getStart().equals(bookingDto.getEnd())) {
             throw new ValidationException("Некорректные даты бронирования");
         }
 
@@ -65,7 +75,7 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponseDto approve(Long ownerId, Long bookingId, Boolean approved) {
         Booking booking = getBookingOrThrow(bookingId);
         if (!booking.getItem().getOwner().getId().equals(ownerId)) {
-            throw new AccessDeniedException("Вы не являетесь владельцем вещи");
+            throw new NotFoundException("Бронирование не найдено");
         }
         if (booking.getStatus() != WAITING) {
             throw new ValidationException("Нельзя подтвердить/отклонить уже обработанное бронирование");
@@ -85,7 +95,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public List<BookingResponseDto> getAllByBooker(Long bookerId, String state) {
-        userService.getUserById(bookerId);
+        userService.getUserById(bookerId); // валидация существования
         Sort sort = Sort.by(Sort.Direction.DESC, "start");
         List<Booking> bookings = switch (state == null ? "ALL" : state) {
             case "ALL" -> bookingRepository.findByBookerId(bookerId, sort);
@@ -103,7 +113,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public List<BookingResponseDto> getAllByOwner(Long ownerId, String state) {
-        userService.getUserById(ownerId);
+        userService.getUserById(ownerId); // валидация существования
         Sort sort = Sort.by(Sort.Direction.DESC, "start");
         List<Booking> bookings = switch (state == null ? "ALL" : state) {
             case "ALL" -> bookingRepository.findByItemOwnerId(ownerId, sort);

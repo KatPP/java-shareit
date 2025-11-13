@@ -88,10 +88,10 @@ public class ErrorHandler {
         return new ErrorResponse("Произошла внутренняя ошибка сервера");
     }
 
-    @ExceptionHandler(AccessDeniedException.class)
-    @ResponseStatus(HttpStatus.FORBIDDEN)
-    public ErrorResponse handleAccessDenied(AccessDeniedException e) {
-        log.error("Доступ запрещён: {}", e.getMessage());
+    @ExceptionHandler(HeaderValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleHeaderValidation(HeaderValidationException e) {
+        log.error("Ошибка валидации заголовка: {}", e.getMessage());
         return new ErrorResponse(e.getMessage());
     }
 }

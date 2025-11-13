@@ -15,12 +15,11 @@ import java.util.regex.Pattern;
 
 /**
  * Сервис для управления пользователями в системе ShareIt.
- * Отвечает за выполнение бизнес-логики, связанной с созданием, обновлением,
- * получением и удалением пользователей. Вся работа с хранилищем данных
+ * <p>
+ * Отвечает за выполнение бизнес-логики, связанной с созданием,
+ * обновлением, получением и удалением пользователей. Вся работа с хранилищем данных
  * делегируется репозиторию {@link UserRepository}.
- * Все операции, изменяющие состояние данных (создание, обновление, удаление),
- * помечены аннотацией {@link Transactional} с режимом по умолчанию —
- * транзакция открывается и завершается автоматически.
+ * </p>
  *
  * @see User
  * @see UserDto
@@ -30,15 +29,14 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class UserService {
 
-    /**
-     * Репозиторий для выполнения операций сущности {@link User} в базе данных.
-     */
     private final UserRepository userRepository;
 
     /**
      * Регулярное выражение для валидации формата email-адреса.
+     * <p>
      * Поддерживает стандартный формат email без международных доменов.
      * Примеры корректных адресов: {@code user@example.com}, {@code test+tag@sub.domain.org}
+     * </p>
      */
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
             "^[A-Za-z0-9+_.-]+@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})$"
@@ -46,12 +44,14 @@ public class UserService {
 
     /**
      * Создаёт нового пользователя на основе переданного DTO.
+     * <p>
      * Перед сохранением выполняется валидация данных и проверка уникальности email.
      * В случае нарушения бизнес-правил выбрасываются соответствующие исключения.
+     * </p>
      *
      * @param userDto объект с данными нового пользователя (имя и email)
      * @return созданный пользователь в формате {@link UserDto} с присвоенным ID
-     * @throws ValidationException если имя или email не соответствуют требованиям
+     * @throws ValidationException если имя или email не прошли валидацию
      * @throws ConflictException   если пользователь с таким email уже существует в системе
      */
     @Transactional
@@ -68,12 +68,14 @@ public class UserService {
 
     /**
      * Обновляет данные существующего пользователя по его идентификатору.
+     * <p>
      * Возможна частичная замена полей: можно обновить только имя, только email
      * или оба поля одновременно. Если email изменяется, проверяется его уникальность.
      * Пользователь не может получить email, уже занятый другим пользователем.
+     * </p>
      *
      * @param userId  идентификатор обновляемого пользователя
-     * @param userDto объект с новыми данными (имя и/или email)
+     * @param userDto DTO с новыми данными (имя и/или email)
      * @return обновлённый пользователь в формате {@link UserDto}
      * @throws NotFoundException   если пользователь с указанным ID не найден
      * @throws ValidationException если email не соответствует формату или пуст
@@ -81,30 +83,32 @@ public class UserService {
      */
     @Transactional
     public UserDto update(Long userId, UserDto userDto) {
-        User existingUser = getUserById(userId);
+        User user = getUserById(userId);
         String newEmail = userDto.getEmail();
         String newName = userDto.getName();
 
         if (newEmail != null) {
             validateEmail(newEmail);
-            if (!newEmail.equalsIgnoreCase(existingUser.getEmail()) &&
+            if (!newEmail.equalsIgnoreCase(user.getEmail()) &&
                     userRepository.existsByEmailIgnoreCase(newEmail)) {
                 throw new ConflictException("Email " + newEmail + " уже используется");
             }
-            existingUser.setEmail(newEmail);
+            user.setEmail(newEmail);
         }
 
         if (newName != null) {
-            existingUser.setName(newName);
+            user.setName(newName);
         }
 
-        return UserMapper.toUserDto(userRepository.save(existingUser));
+        return UserMapper.toUserDto(userRepository.save(user));
     }
 
     /**
      * Возвращает пользователя по его идентификатору.
+     * <p>
      * Запрос делегируется репозиторию. Если пользователь не найден,
      * выбрасывается исключение {@link NotFoundException}.
+     * </p>
      *
      * @param userId идентификатор запрашиваемого пользователя
      * @return пользователь в формате {@link UserDto}
@@ -117,8 +121,10 @@ public class UserService {
 
     /**
      * Удаляет пользователя по его идентификатору.
+     * <p>
      * Если пользователь не существует, метод завершается без ошибки
      * (в соответствии с поведением {@link org.springframework.data.repository.CrudRepository#deleteById}).
+     * </p>
      *
      * @param userId идентификатор удаляемого пользователя
      */
@@ -129,9 +135,10 @@ public class UserService {
 
     /**
      * Возвращает модель пользователя по его идентификатору.
-     *
+     * <p>
      * Используется внутри других сервисов для получения полной сущности {@link User},
      * например, при создании вещи или бронирования.
+     * </p>
      *
      * @param userId идентификатор пользователя
      * @return объект модели {@link User}
@@ -143,8 +150,30 @@ public class UserService {
     }
 
     /**
+     * Парсит и валидирует значение заголовка {@code X-Sharer-User-Id}.
+     *
+     * @param userIdHeader строковое значение заголовка
+     * @return идентификатор пользователя как {@code Long}
+     * @throws ValidationException если заголовок отсутствует, пуст, не является числом
+     *                                                или содержит недопустимое значение (≤ 0)
+     */
+    public Long parseUserIdHeader(String userIdHeader) {
+        if (userIdHeader == null || userIdHeader.isBlank()) {
+            throw new ValidationException("Заголовок X-Sharer-User-Id обязателен");
+        }
+        try {
+            Long userId = Long.parseLong(userIdHeader);
+            if (userId <= 0) {
+                throw new ValidationException("Некорректный идентификатор пользователя");
+            }
+            return userId;
+        } catch (NumberFormatException e) {
+            throw new ValidationException("Некорректный идентификатор пользователя");
+        }
+    }
+
+    /**
      * Проверяет корректность данных пользователя при создании.
-     * Убеждается, что объект не null, имя и email не пустые.
      *
      * @param userDto данные пользователя для валидации
      * @throws ValidationException если данные не проходят валидацию
@@ -161,7 +190,10 @@ public class UserService {
 
     /**
      * Проверяет корректность email-адреса по регулярному выражению.
+     * <p>
      * Email не может быть null, пустым или содержать недопустимые символы.
+     * </p>
+     *
      * @param email email для проверки
      * @throws ValidationException если email не соответствует формату
      */

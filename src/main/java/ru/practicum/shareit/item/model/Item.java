@@ -4,11 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import ru.practicum.shareit.user.User;
-import jakarta.persistence.Entity;
 
-/**
- * Модель вещи, доступной для аренды.
- */
 @Entity
 @Table(name = "items")
 @Getter
@@ -23,11 +19,11 @@ public class Item {
     private Long id;
 
     @NotBlank
-    @Column(name = "name", nullable = false)
+    @Column(nullable = false)
     private String name;
 
     @NotBlank
-    @Column(name = "description", nullable = false, length = 1000)
+    @Column(nullable = false, length = 1000)
     private String description;
 
     @Column(name = "is_available", nullable = false)

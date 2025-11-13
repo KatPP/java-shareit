@@ -2,8 +2,10 @@ package ru.practicum.shareit.item.service;
 
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.comment.Comment;
 import ru.practicum.shareit.comment.dto.CommentDto;
@@ -27,42 +29,22 @@ import java.util.stream.Collectors;
 /**
  * Сервис для управления вещами (items) в системе ShareIt.
  * <p>
- * Обеспечивает полную бизнес-логику по работе с вещами:
- * создание, обновление, поиск, просмотр с информацией о бронировании и отзывами.
- * </p>
- * <p>
- * Все изменяющие данные операции помечены аннотацией {@link Transactional},
- * а операции только для чтения — аннотацией {@code @Transactional(readOnly = true)}.
+ * Отвечает за выполнение бизнес-логики, связанной с созданием,
+ * обновлением, поиском и просмотром вещей. Вся работа с хранилищем данных
+ * делегируется репозиторию {@link ItemRepository}.
  * </p>
  *
  * @see Item
  * @see ItemDto
- * @see ItemResponseDto
  * @see ItemRepository
  */
 @Service
 @RequiredArgsConstructor
 public class ItemService {
 
-    /**
-     * Репозиторий для выполнения операций с сущностью {@link Item} в базе данных.
-     */
     private final ItemRepository itemRepository;
-
-    /**
-     * Сервис для работы с пользователями.
-     */
     private final UserService userService;
-
-    /**
-     * Репозиторий для работы с бронированиями, необходим для получения дат
-     * последнего и следующего бронирования.
-     */
     private final BookingRepository bookingRepository;
-
-    /**
-     * Репозиторий для работы с отзывами (комментариями).
-     */
     private final CommentRepository commentRepository;
 
     /**
@@ -125,9 +107,9 @@ public class ItemService {
     }
 
     /**
-     * Возвращает данные вещи по её идентификатору с информацией о бронировании и отзывах.
+     * Возвращает данные вещи по её идентификатору с информацией о бронировании и отзывами.
      * <p>
-     * Заголовок {@code X-Sharer-User-Id} не обязателен для этого метода.
+     * Заголовок {@code X-Sharer-User-Id} не требуется для этого метода.
      * Но если он присутствует, может использоваться в будущем для дополнительной логики.
      * </p>
      *

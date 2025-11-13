@@ -1,15 +1,21 @@
 package ru.practicum.shareit.item;
 
-import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.comment.dto.CommentDto;
+import ru.practicum.shareit.exception.HeaderValidationException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemResponseDto;
 import ru.practicum.shareit.item.service.ItemService;
 
 import java.util.List;
 
+/**
+ * REST-контроллер для управления вещами (items) в системе ShareIt.
+ * Предоставляет эндпоинты для создания, обновления, поиска и получения информации о вещах.
+ * Все операции, кроме получения по ID и поиска, требуют заголовок {@code X-Sharer-User-Id},
+ * идентифицирующий владельца или автора запроса.
+ */
 @RestController
 @RequestMapping("/items")
 @RequiredArgsConstructor
@@ -19,16 +25,16 @@ public class ItemController {
 
     private Long parseUserIdHeader(String userIdHeader) {
         if (userIdHeader == null || userIdHeader.isBlank()) {
-            throw new ValidationException("Заголовок X-Sharer-User-Id обязателен");
+            throw new HeaderValidationException("Заголовок X-Sharer-User-Id обязателен");
         }
         try {
             Long userId = Long.parseLong(userIdHeader);
             if (userId <= 0) {
-                throw new ValidationException("Некорректный идентификатор пользователя");
+                throw new HeaderValidationException("Некорректный идентификатор пользователя");
             }
             return userId;
         } catch (NumberFormatException e) {
-            throw new ValidationException("Некорректный идентификатор пользователя");
+            throw new HeaderValidationException("Некорректный идентификатор пользователя");
         }
     }
 

@@ -1,33 +1,52 @@
 package ru.practicum.shareit.item.mapper;
 
 import org.springframework.data.domain.PageRequest;
+import ru.practicum.shareit.booking.dto.BookingResponseDto;
 import ru.practicum.shareit.booking.mapper.BookingMapper;
 import ru.practicum.shareit.booking.repository.BookingRepository;
+import ru.practicum.shareit.comment.dto.CommentDto;
 import ru.practicum.shareit.comment.mapper.CommentMapper;
 import ru.practicum.shareit.comment.repository.CommentRepository;
 import ru.practicum.shareit.item.dto.ItemResponseDto;
 import ru.practicum.shareit.item.model.Item;
 
 import java.util.Collections;
+import java.util.List;
 
+/**
+ * Класс для преобразования модели {@link Item} в расширенный DTO {@link ItemResponseDto},
+ * содержащий информацию о последнем и следующем бронировании, а также отзывы.
+ */
 public class ItemResponseMapper {
 
     public static ItemResponseDto toItemResponseDto(Item item,
                                                     BookingRepository bookingRepository,
                                                     CommentRepository commentRepository) {
-        var last = bookingRepository.findLastBookingsByItemId(item.getId(), PageRequest.of(0, 1));
-        var next = bookingRepository.findNextBookingsByItemId(item.getId(), PageRequest.of(0, 1));
-        var comments = commentRepository.findByItemId(item.getId());
+        List<BookingResponseDto> lastBookings = bookingRepository
+                .findLastBookingsByItemId(item.getId(), PageRequest.of(0, 1))
+                .stream()
+                .map(BookingMapper::toBookingResponseDto)
+                .toList();
+
+        List<BookingResponseDto> nextBookings = bookingRepository
+                .findNextBookingsByItemId(item.getId(), PageRequest.of(0, 1))
+                .stream()
+                .map(BookingMapper::toBookingResponseDto)
+                .toList();
+
+        List<CommentDto> comments = commentRepository.findByItemId(item.getId())
+                .stream()
+                .map(CommentMapper::toCommentDto)
+                .toList();
 
         return new ItemResponseDto(
                 item.getId(),
                 item.getName(),
                 item.getDescription(),
                 item.getAvailable(),
-                last.isEmpty() ? null : BookingMapper.toBookingResponseDto(last.get(0)),
-                next.isEmpty() ? null : BookingMapper.toBookingResponseDto(next.get(0)),
-                comments.isEmpty() ? Collections.emptyList() :
-                        comments.stream().map(CommentMapper::toCommentDto).toList()
+                lastBookings.isEmpty() ? null : lastBookings.get(0),
+                nextBookings.isEmpty() ? null : nextBookings.get(0),
+                comments.isEmpty() ? Collections.emptyList() : comments
         );
     }
 }
