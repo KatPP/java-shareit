@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
  */
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true) // ДОБАВИТЬ
 public class UserService {
 
     private final UserRepository userRepository;

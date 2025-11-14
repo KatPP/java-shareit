@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true) // ДОБАВИТЬ
 public class ItemService {
     private final ItemRepository itemRepository;
     private final UserService userService;
