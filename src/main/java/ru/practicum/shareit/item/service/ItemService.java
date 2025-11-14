@@ -18,7 +18,6 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.service.UserService;
-
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -39,7 +38,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ItemService {
-
     private final ItemRepository itemRepository;
     private final UserService userService;
     private final BookingRepository bookingRepository;
@@ -86,11 +84,9 @@ public class ItemService {
     public ItemDto update(Long userId, Long itemId, ItemDto itemDto) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException("Вещь с ID " + itemId + " не найдена"));
-
         if (!item.getOwner().getId().equals(userId)) {
             throw new NotFoundException("Вещь не найдена");
         }
-
         if (itemDto.getName() != null && !itemDto.getName().isBlank()) {
             item.setName(itemDto.getName());
         }
@@ -100,7 +96,6 @@ public class ItemService {
         if (itemDto.getAvailable() != null) {
             item.setAvailable(itemDto.getAvailable());
         }
-
         return ItemMapper.toItemDto(itemRepository.save(item));
     }
 
@@ -179,21 +174,17 @@ public class ItemService {
     public CommentDto addComment(Long userId, Long itemId, CommentDto commentDto) {
         User author = userService.getUserById(userId);
         Item item = getItemById(itemId);
-
         boolean hasApprovedBooking = bookingRepository.existsByItemIdAndBookerIdAndEndIsBefore(
                 itemId, userId, LocalDateTime.now()
         );
-
         if (!hasApprovedBooking) {
             throw new ValidationException("Нельзя оставить отзыв без завершённого бронирования");
         }
-
         Comment comment = new Comment();
         comment.setText(commentDto.getText());
         comment.setItem(item);
         comment.setAuthor(author);
         comment.setCreated(LocalDateTime.now());
-
         return CommentMapper.toCommentDto(commentRepository.save(comment));
     }
 

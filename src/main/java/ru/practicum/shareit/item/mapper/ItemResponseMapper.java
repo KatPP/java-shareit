@@ -9,7 +9,6 @@ import ru.practicum.shareit.comment.mapper.CommentMapper;
 import ru.practicum.shareit.comment.repository.CommentRepository;
 import ru.practicum.shareit.item.dto.ItemResponseDto;
 import ru.practicum.shareit.item.model.Item;
-
 import java.util.Collections;
 import java.util.List;
 
@@ -19,6 +18,14 @@ import java.util.List;
  */
 public class ItemResponseMapper {
 
+    /**
+     * Преобразует модель вещи в расширенный DTO, содержащий информацию о бронировании и отзывах.
+     *
+     * @param item               модель вещи
+     * @param bookingRepository  репозиторий бронирований
+     * @param commentRepository  репозиторий комментариев
+     * @return расширенный DTO вещи
+     */
     public static ItemResponseDto toItemResponseDto(Item item,
                                                     BookingRepository bookingRepository,
                                                     CommentRepository commentRepository) {
@@ -27,18 +34,15 @@ public class ItemResponseMapper {
                 .stream()
                 .map(BookingMapper::toBookingResponseDto)
                 .toList();
-
         List<BookingResponseDto> nextBookings = bookingRepository
                 .findNextBookingsByItemId(item.getId(), PageRequest.of(0, 1))
                 .stream()
                 .map(BookingMapper::toBookingResponseDto)
                 .toList();
-
         List<CommentDto> comments = commentRepository.findByItemId(item.getId())
                 .stream()
                 .map(CommentMapper::toCommentDto)
                 .toList();
-
         return new ItemResponseDto(
                 item.getId(),
                 item.getName(),

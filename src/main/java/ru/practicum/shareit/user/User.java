@@ -5,6 +5,12 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
+/**
+ * Сущность пользователя в системе ShareIt.
+ * <p>
+ * Представляет собой запись в таблице users базы данных.
+ * </p>
+ */
 @Entity
 @Table(name = "users", uniqueConstraints = @UniqueConstraint(name = "uq_user_email", columnNames = "email"))
 @Getter
@@ -13,7 +19,6 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

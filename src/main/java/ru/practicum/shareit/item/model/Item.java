@@ -5,6 +5,12 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import ru.practicum.shareit.user.User;
 
+/**
+ * Сущность вещи в системе ShareIt.
+ * <p>
+ * Представляет собой запись в таблице items базы данных.
+ * </p>
+ */
 @Entity
 @Table(name = "items")
 @Getter
@@ -13,7 +19,6 @@ import ru.practicum.shareit.user.User;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Item {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -33,6 +38,6 @@ public class Item {
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
 
-    @Column(name = "request_id")
+    @Column(name = "request_id") // Явное указание имени столбца
     private Long request;
 }
