@@ -98,14 +98,14 @@ public class BookingServiceImpl implements BookingService {
         userService.getUserById(bookerId); // валидация существования
         Sort sort = Sort.by(Sort.Direction.DESC, "start");
         List<Booking> bookings = switch (state == null ? "ALL" : state) {
-            case "ALL" -> bookingRepository.findByBookerId(bookerId, sort);
-            case "CURRENT" -> bookingRepository.findByBookerId(bookerId, sort).stream()
+            case "ALL" -> bookingRepository.findByBooker_Id(bookerId, sort);
+            case "CURRENT" -> bookingRepository.findByBooker_Id(bookerId, sort).stream()
                     .filter(b -> b.getStart().isBefore(LocalDateTime.now()) && b.getEnd().isAfter(LocalDateTime.now()))
                     .collect(Collectors.toList());
-            case "PAST" -> bookingRepository.findByBookerIdAndEndIsBefore(bookerId, LocalDateTime.now(), sort);
-            case "FUTURE" -> bookingRepository.findByBookerIdAndStartIsAfter(bookerId, LocalDateTime.now(), sort);
-            case "WAITING" -> filterByStatus(bookingRepository.findByBookerId(bookerId, sort), WAITING);
-            case "REJECTED" -> filterByStatus(bookingRepository.findByBookerId(bookerId, sort), REJECTED);
+            case "PAST" -> bookingRepository.findByBooker_IdAndEndIsBefore(bookerId, LocalDateTime.now(), sort);
+            case "FUTURE" -> bookingRepository.findByBooker_IdAndStartIsAfter(bookerId, LocalDateTime.now(), sort);
+            case "WAITING" -> filterByStatus(bookingRepository.findByBooker_Id(bookerId, sort), WAITING);
+            case "REJECTED" -> filterByStatus(bookingRepository.findByBooker_Id(bookerId, sort), REJECTED);
             default -> throw new ValidationException("Unknown state: " + state);
         };
         return bookings.stream().map(BookingMapper::toBookingResponseDto).collect(Collectors.toList());
@@ -116,14 +116,14 @@ public class BookingServiceImpl implements BookingService {
         userService.getUserById(ownerId); // валидация существования
         Sort sort = Sort.by(Sort.Direction.DESC, "start");
         List<Booking> bookings = switch (state == null ? "ALL" : state) {
-            case "ALL" -> bookingRepository.findByItemOwnerId(ownerId, sort);
-            case "CURRENT" -> bookingRepository.findByItemOwnerId(ownerId, sort).stream()
+            case "ALL" -> bookingRepository.findByItem_Owner_Id(ownerId, sort);
+            case "CURRENT" -> bookingRepository.findByItem_Owner_Id(ownerId, sort).stream()
                     .filter(b -> b.getStart().isBefore(LocalDateTime.now()) && b.getEnd().isAfter(LocalDateTime.now()))
                     .collect(Collectors.toList());
-            case "PAST" -> bookingRepository.findByItemOwnerIdAndEndIsBefore(ownerId, LocalDateTime.now(), sort);
-            case "FUTURE" -> bookingRepository.findByItemOwnerIdAndStartIsAfter(ownerId, LocalDateTime.now(), sort);
-            case "WAITING" -> filterByStatus(bookingRepository.findByItemOwnerId(ownerId, sort), WAITING);
-            case "REJECTED" -> filterByStatus(bookingRepository.findByItemOwnerId(ownerId, sort), REJECTED);
+            case "PAST" -> bookingRepository.findByItem_Owner_IdAndEndIsBefore(ownerId, LocalDateTime.now(), sort);
+            case "FUTURE" -> bookingRepository.findByItem_Owner_IdAndStartIsAfter(ownerId, LocalDateTime.now(), sort);
+            case "WAITING" -> filterByStatus(bookingRepository.findByItem_Owner_Id(ownerId, sort), WAITING);
+            case "REJECTED" -> filterByStatus(bookingRepository.findByItem_Owner_Id(ownerId, sort), REJECTED);
             default -> throw new ValidationException("Unknown state: " + state);
         };
         return bookings.stream().map(BookingMapper::toBookingResponseDto).collect(Collectors.toList());

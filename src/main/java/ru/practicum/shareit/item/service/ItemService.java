@@ -127,7 +127,7 @@ public class ItemService {
     @Transactional(readOnly = true)
     public List<ItemResponseDto> getOwnerItemsWithBookingsAndComments(Long userId) {
         userService.getUserById(userId); // проверка существования
-        return itemRepository.findByOwnerIdOrderById(userId).stream()
+        return itemRepository.findByOwner_IdOrderById(userId).stream()
                 .map(item -> ItemResponseMapper.toItemResponseDto(item, bookingRepository, commentRepository))
                 .collect(Collectors.toList());
     }

@@ -5,23 +5,17 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import ru.practicum.shareit.booking.model.Booking;
-
 import java.time.LocalDateTime;
 import java.util.List;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
+    List<Booking> findByBooker_Id(Long bookerId, Sort sort); // <-- было findByBookerId
+    List<Booking> findByBooker_IdAndEndIsBefore(Long bookerId, LocalDateTime end, Sort sort); // <-- было findByBookerIdAndEndIsBefore
+    List<Booking> findByBooker_IdAndStartIsAfter(Long bookerId, LocalDateTime start, Sort sort); // <-- было findByBookerIdAndStartIsAfter
 
-    List<Booking> findByBookerId(Long bookerId, Sort sort);
-
-    List<Booking> findByBookerIdAndEndIsBefore(Long bookerId, LocalDateTime end, Sort sort);
-
-    List<Booking> findByBookerIdAndStartIsAfter(Long bookerId, LocalDateTime start, Sort sort);
-
-    List<Booking> findByItemOwnerId(Long ownerId, Sort sort);
-
-    List<Booking> findByItemOwnerIdAndEndIsBefore(Long ownerId, LocalDateTime end, Sort sort);
-
-    List<Booking> findByItemOwnerIdAndStartIsAfter(Long ownerId, LocalDateTime start, Sort sort);
+    List<Booking> findByItem_Owner_Id(Long ownerId, Sort sort); // <-- было findByItemOwnerId
+    List<Booking> findByItem_Owner_IdAndEndIsBefore(Long ownerId, LocalDateTime end, Sort sort); // <-- было findByItemOwnerIdAndEndIsBefore
+    List<Booking> findByItem_Owner_IdAndStartIsAfter(Long ownerId, LocalDateTime start, Sort sort); // <-- было findByItemOwnerIdAndStartIsAfter
 
     @Query("SELECT b FROM Booking b WHERE b.item.id = ?1 AND b.end < CURRENT_TIMESTAMP ORDER BY b.end DESC")
     List<Booking> findLastBookingsByItemId(Long itemId, Pageable pageable);
