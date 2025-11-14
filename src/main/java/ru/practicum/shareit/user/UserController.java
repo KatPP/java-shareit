@@ -26,7 +26,7 @@ public class UserController {
      *
      * @param userDto данные нового пользователя (имя и email)
      * @return созданный пользователь с присвоенным ID
-     * @throws ConflictException   если пользователь с таким email уже существует
+     * @throws ConflictException если пользователь с таким email уже существует
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -42,8 +42,8 @@ public class UserController {
      * @param userId  идентификатор пользователя
      * @param userDto DTO с полями для обновления (остальные поля могут быть null)
      * @return обновлённый пользователь
-     * @throws NotFoundException   если пользователь с указанным ID не найден
-     * @throws ConflictException   если новый email уже используется другим пользователем
+     * @throws NotFoundException если пользователь с указанным ID не найден
+     * @throws ConflictException если новый email уже используется другим пользователем
      */
     @PatchMapping("/{userId}")
     public UserDto update(@PathVariable Long userId,
@@ -53,6 +53,7 @@ public class UserController {
 
     /**
      * Возвращает данные пользователя по его идентификатору.
+     *
      * @param userId идентификатор пользователя
      * @return данные пользователя
      * @throws NotFoundException если пользователь не найден
@@ -64,6 +65,7 @@ public class UserController {
 
     /**
      * Удаляет пользователя по его идентификатору.
+     *
      * @param userId идентификатор пользователя
      */
     @DeleteMapping("/{userId}")
