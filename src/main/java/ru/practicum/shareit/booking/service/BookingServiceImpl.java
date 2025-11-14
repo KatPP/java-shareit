@@ -1,6 +1,6 @@
 package ru.practicum.shareit.booking.service;
 
-import jakarta.validation.ValidationException;
+import ru.practicum.shareit.exception.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
