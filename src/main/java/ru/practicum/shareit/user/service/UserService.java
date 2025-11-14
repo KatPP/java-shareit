@@ -56,14 +56,50 @@ public class UserService {
      */
     @Transactional
     public UserDto create(UserDto userDto) {
-        validateUser(userDto);
-        if (userRepository.existsByEmailIgnoreCase(userDto.getEmail())) {
-            throw new ConflictException("Пользователь с email " + userDto.getEmail() + " уже существует");
-        }
+        System.out.println("=== DEBUG: UserService.create() START ===");
+        System.out.println("Received UserDto: " + userDto);
 
-        User user = UserMapper.toUser(userDto);
-        User savedUser = userRepository.save(user);
-        return UserMapper.toUserDto(savedUser);
+        try {
+            // 1. Валидация
+            System.out.println("DEBUG: Starting validation...");
+            validateUser(userDto);
+            System.out.println("DEBUG: Validation passed");
+
+            // 2. Проверка существования пользователя
+            System.out.println("DEBUG: Checking if user exists...");
+            boolean exists = userRepository.existsByEmailIgnoreCase(userDto.getEmail());
+            System.out.println("DEBUG: User exists: " + exists);
+
+            if (exists) {
+                System.out.println("DEBUG: User already exists, throwing ConflictException");
+                throw new ConflictException("Пользователь с email " + userDto.getEmail() + " уже существует");
+            }
+
+            // 3. Маппинг
+            System.out.println("DEBUG: Mapping UserDto to User...");
+            User user = UserMapper.toUser(userDto);
+            System.out.println("DEBUG: Mapped User: " + user);
+
+            // 4. Сохранение
+            System.out.println("DEBUG: Saving user to database...");
+            User savedUser = userRepository.save(user);
+            System.out.println("DEBUG: Saved user with ID: " + savedUser.getId());
+
+            // 5. Маппинг обратно
+            UserDto result = UserMapper.toUserDto(savedUser);
+            System.out.println("DEBUG: Returning UserDto: " + result);
+            System.out.println("=== DEBUG: UserService.create() SUCCESS ===");
+
+            return result;
+
+        } catch (Exception e) {
+            System.out.println("=== DEBUG: UserService.create() ERROR ===");
+            System.out.println("Error type: " + e.getClass().getName());
+            System.out.println("Error message: " + e.getMessage());
+            e.printStackTrace();
+            System.out.println("=== DEBUG: END ===");
+            throw e;
+        }
     }
 
     /**
