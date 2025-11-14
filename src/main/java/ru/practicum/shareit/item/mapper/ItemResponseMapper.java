@@ -14,38 +14,32 @@ import ru.practicum.shareit.item.model.Item;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Класс для преобразования модели {@link Item} в расширенный DTO {@link ItemResponseDto},
- * содержащий информацию о последнем и следующем бронировании, а также отзывы.
- */
 public class ItemResponseMapper {
 
-    /**
-     * Преобразует модель вещи в расширенный DTO, содержащий информацию о бронировании и отзывах.
-     *
-     * @param item               модель вещи
-     * @param bookingRepository  репозиторий бронирований
-     * @param commentRepository  репозиторий комментариев
-     * @return расширенный DTO вещи
-     */
-    public static ItemResponseDto toItemResponseDto(Item item,
-                                                    BookingRepository bookingRepository,
-                                                    CommentRepository commentRepository) {
-        // Для последних бронирований: сортировка по end DESC (самые новые сначала)
-        List<BookingResponseDto> lastBookings = bookingRepository
-                .findLastBookingsByItemId(item.getId(),
-                        PageRequest.of(0, 1, Sort.by(Sort.Direction.DESC, "end")))
-                .stream()
-                .map(BookingMapper::toBookingResponseDto)
-                .toList();
+    public static ItemResponseDto toItemResponseDto(
+            Item item,
+            BookingRepository bookingRepository,
+            CommentRepository commentRepository,
+            boolean showBookings) {
 
-        // Для следующих бронирований: сортировка по start ASC (самые ближайшие сначала)
-        List<BookingResponseDto> nextBookings = bookingRepository
-                .findNextBookingsByItemId(item.getId(),
-                        PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "start")))
-                .stream()
-                .map(BookingMapper::toBookingResponseDto)
-                .toList();
+        List<BookingResponseDto> lastBookings = Collections.emptyList();
+        List<BookingResponseDto> nextBookings = Collections.emptyList();
+
+        if (showBookings) {
+            lastBookings = bookingRepository
+                    .findLastBookingsByItemId(item.getId(),
+                            PageRequest.of(0, 1, Sort.by(Sort.Direction.DESC, "end")))
+                    .stream()
+                    .map(BookingMapper::toBookingResponseDto)
+                    .toList();
+
+            nextBookings = bookingRepository
+                    .findNextBookingsByItemId(item.getId(),
+                            PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "start")))
+                    .stream()
+                    .map(BookingMapper::toBookingResponseDto)
+                    .toList();
+        }
 
         List<CommentDto> comments = commentRepository.findByItemId(item.getId())
                 .stream()

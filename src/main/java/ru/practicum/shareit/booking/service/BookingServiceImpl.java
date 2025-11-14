@@ -1,5 +1,8 @@
 package ru.practicum.shareit.booking.service;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import ru.practicum.shareit.exception.ForbiddenException;
 import ru.practicum.shareit.exception.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -50,15 +53,26 @@ public class BookingServiceImpl implements BookingService {
         if (bookingDto == null) {
             throw new ValidationException("Данные бронирования не могут быть null");
         }
+
         var item = itemService.getItemById(bookingDto.getItemId());
+
         if (!item.getAvailable()) {
-            throw new ValidationException("Вещь недоступна для бронирования");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Вещь недоступна для бронирования");
         }
         if (item.getOwner().getId().equals(bookerId)) {
-            throw new ValidationException("Нельзя забронировать собственную вещь");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Нельзя забронировать собственную вещь");
         }
         if (!bookingDto.getStart().isBefore(bookingDto.getEnd()) || bookingDto.getStart().equals(bookingDto.getEnd())) {
-            throw new ValidationException("Некорректные даты бронирования");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Некорректные даты бронирования");
+        }
+        if (bookingDto.getStart().isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Дата начала бронирования не может быть в прошлом");
+        }
+        if (bookingDto.getStart() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Дата начала бронирования обязательна");
+        }
+        if (bookingDto.getEnd() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Дата окончания бронирования обязательна");
         }
 
         Booking booking = new Booking();
@@ -75,7 +89,7 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponseDto approve(Long ownerId, Long bookingId, Boolean approved) {
         Booking booking = getBookingOrThrow(bookingId);
         if (!booking.getItem().getOwner().getId().equals(ownerId)) {
-            throw new NotFoundException("Бронирование не найдено");
+            throw new ForbiddenException("Недостаточно прав для подтверждения бронирования");
         }
         if (booking.getStatus() != WAITING) {
             throw new ValidationException("Нельзя подтвердить/отклонить уже обработанное бронирование");
