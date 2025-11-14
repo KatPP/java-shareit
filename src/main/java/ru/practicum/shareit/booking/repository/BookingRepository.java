@@ -33,8 +33,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT b FROM Booking b WHERE b.item.id = ?1 AND b.start > CURRENT_TIMESTAMP ORDER BY b.start ASC")
     List<Booking> findNextBookingsByItemId(Long itemId, Pageable pageable);
 
-    boolean existsByItemIdAndBookerIdAndEndIsBefore(Long itemId, Long bookerId, LocalDateTime now);
-
     boolean existsByItemIdAndBookerIdAndEndIsBeforeAndStatus(
             Long itemId,
             Long bookerId,

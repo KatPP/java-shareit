@@ -7,9 +7,7 @@ import ru.practicum.shareit.user.User;
 
 /**
  * Сущность вещи в системе ShareIt.
- * <p>
  * Представляет собой запись в таблице items базы данных.
- * </p>
  */
 @Entity
 @Table(name = "items")

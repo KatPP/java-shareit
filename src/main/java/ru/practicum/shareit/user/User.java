@@ -7,9 +7,6 @@ import lombok.*;
 
 /**
  * Сущность пользователя в системе ShareIt.
- * <p>
- * Представляет собой запись в таблице users базы данных.
- * </p>
  */
 @Entity
 @Table(name = "users", uniqueConstraints = @UniqueConstraint(name = "uq_user_email", columnNames = "email"))

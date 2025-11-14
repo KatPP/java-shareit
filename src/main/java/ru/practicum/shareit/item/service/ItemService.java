@@ -1,5 +1,3 @@
-// ru.practicum.shareit.item.service.ItemService
-
 package ru.practicum.shareit.item.service;
 
 import lombok.RequiredArgsConstructor;

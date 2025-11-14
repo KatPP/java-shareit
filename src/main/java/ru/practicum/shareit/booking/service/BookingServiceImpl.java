@@ -26,10 +26,8 @@ import static ru.practicum.shareit.booking.model.BookingStatus.*;
 
 /**
  * Сервис для управления бронированием в системе ShareIt.
- * <p>
  * Обеспечивает полную бизнес-логику по работе с бронированием:
  * создание, подтверждение, просмотр, список.
- * </p>
  *
  * @see Booking
  * @see BookingDto
