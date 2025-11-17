@@ -90,19 +90,24 @@ public class ItemService {
 
     @Transactional
     public CommentDto addComment(Long userId, Long itemId, CommentDto commentDto) {
+
         User author = userService.getUserById(userId);
         Item item = getItemById(itemId);
-        boolean hasApprovedBooking = bookingRepository.existsByItemIdAndBookerIdAndEndIsBeforeAndStatus(
+        boolean hasApprovedAndFinishedBooking = bookingRepository.existsByItemIdAndBookerIdAndEndIsBeforeAndStatus(
                 itemId, userId, LocalDateTime.now(), ru.practicum.shareit.booking.model.BookingStatus.APPROVED
         );
-        if (!hasApprovedBooking) {
+
+        if (!hasApprovedAndFinishedBooking) {
             throw new ValidationException("Нельзя оставить отзыв без завершённого бронирования");
         }
+
         Comment comment = new Comment();
-        comment.setText(commentDto.getText());
+        String text = (commentDto != null && commentDto.getText() != null) ? commentDto.getText() : "";
+        comment.setText(text);
         comment.setItem(item);
         comment.setAuthor(author);
         comment.setCreated(LocalDateTime.now());
+
         return CommentMapper.toCommentDto(commentRepository.save(comment));
     }
 
