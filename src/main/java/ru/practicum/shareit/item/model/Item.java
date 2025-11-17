@@ -3,6 +3,7 @@ package ru.practicum.shareit.item.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 import ru.practicum.shareit.user.User;
 
 /**
@@ -16,26 +17,27 @@ import ru.practicum.shareit.user.User;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class Item {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    Long id;
 
     @NotBlank
     @Column(nullable = false)
-    private String name;
+    String name;
 
     @NotBlank
     @Column(nullable = false, length = 1000)
-    private String description;
+    String description;
 
     @Column(name = "is_available", nullable = false)
-    private Boolean available;
+    Boolean available;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
-    private User owner;
+    User owner;
 
-    @Column(name = "request_id") // Явное указание имени столбца
-    private Long request;
+    @Column(name = "request_id")
+    Long request;
 }

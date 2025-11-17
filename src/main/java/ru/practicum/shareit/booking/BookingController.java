@@ -20,7 +20,12 @@ public class BookingController {
 
     private final BookingService bookingService;
 
-    private Long parseUserIdHeader(String userIdHeader) {
+    /**
+     * Метод парсит заголовок X-Sharer-User-Id в Long userId.
+     * Вызывается перед каждым методом, использующим @ModelAttribute("userId").
+     */
+    @ModelAttribute("userId")
+    public Long parseUserIdHeader(@RequestHeader(value = "X-Sharer-User-Id", required = false) String userIdHeader) {
         if (userIdHeader == null || userIdHeader.isBlank()) {
             throw new HeaderValidationException("Заголовок X-Sharer-User-Id обязателен");
         }
@@ -36,38 +41,33 @@ public class BookingController {
     }
 
     @PostMapping
-    public BookingResponseDto create(@RequestHeader(value = "X-Sharer-User-Id", required = false) String userIdHeader,
+    public BookingResponseDto create(@ModelAttribute("userId") Long userId,
                                      @RequestBody BookingDto bookingDto) {
-        Long userId = parseUserIdHeader(userIdHeader);
         return bookingService.create(userId, bookingDto);
     }
 
     @PatchMapping("/{bookingId}")
-    public BookingResponseDto approve(@RequestHeader(value = "X-Sharer-User-Id", required = false) String userIdHeader,
+    public BookingResponseDto approve(@ModelAttribute("userId") Long userId,
                                       @PathVariable Long bookingId,
                                       @RequestParam Boolean approved) {
-        Long userId = parseUserIdHeader(userIdHeader);
         return bookingService.approve(userId, bookingId, approved);
     }
 
     @GetMapping("/{bookingId}")
-    public BookingResponseDto get(@RequestHeader(value = "X-Sharer-User-Id", required = false) String userIdHeader,
+    public BookingResponseDto get(@ModelAttribute("userId") Long userId,
                                   @PathVariable Long bookingId) {
-        Long userId = parseUserIdHeader(userIdHeader);
         return bookingService.getById(userId, bookingId);
     }
 
     @GetMapping
-    public List<BookingResponseDto> getAllByBooker(@RequestHeader(value = "X-Sharer-User-Id", required = false) String userIdHeader,
+    public List<BookingResponseDto> getAllByBooker(@ModelAttribute("userId") Long userId,
                                                    @RequestParam(defaultValue = "ALL") String state) {
-        Long userId = parseUserIdHeader(userIdHeader);
         return bookingService.getAllByBooker(userId, state);
     }
 
     @GetMapping("/owner")
-    public List<BookingResponseDto> getAllByOwner(@RequestHeader(value = "X-Sharer-User-Id", required = false) String userIdHeader,
+    public List<BookingResponseDto> getAllByOwner(@ModelAttribute("userId") Long userId,
                                                   @RequestParam(defaultValue = "ALL") String state) {
-        Long userId = parseUserIdHeader(userIdHeader);
         return bookingService.getAllByOwner(userId, state);
     }
 }
