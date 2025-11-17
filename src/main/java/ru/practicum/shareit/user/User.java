@@ -1,25 +1,33 @@
 package ru.practicum.shareit.user;
 
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
-
+import lombok.experimental.FieldDefaults;
 
 /**
- * Модель пользователя.
+ * Сущность пользователя в системе ShareIt.
  */
+@Entity
+@Table(name = "users", uniqueConstraints = @UniqueConstraint(name = "uq_user_email", columnNames = "email"))
 @Getter
 @Setter
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class User {
-    private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    Long id;
 
-    @NotBlank(message = "Имя не может быть пустым")
-    private String name;
+    @NotBlank
+    @Column(nullable = false)
+    String name;
 
-    @Email(message = "Некорректный email")
-    @NotBlank(message = "Email не может быть пустым")
-    private String email;
+    @Email
+    @NotBlank
+    @Column(nullable = false, length = 512)
+    String email;
 }

@@ -1,58 +1,55 @@
 package ru.practicum.shareit.item.service;
 
-import jakarta.validation.ValidationException;
-import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.booking.repository.BookingRepository;
+import ru.practicum.shareit.comment.Comment;
+import ru.practicum.shareit.comment.dto.CommentDto;
+import ru.practicum.shareit.comment.mapper.CommentMapper;
+import ru.practicum.shareit.comment.repository.CommentRepository;
 import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemResponseDto;
 import ru.practicum.shareit.item.mapper.ItemMapper;
+import ru.practicum.shareit.item.mapper.ItemResponseMapper;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.service.UserService;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-
-import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Сервис для управления вещами с in-memory хранилищем.
- */
 @Service
-@Slf4j
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ItemService {
-
-    private final Map<Long, Item> items = new HashMap<>();
-    private final AtomicLong idGenerator = new AtomicLong(1);
+    private final ItemRepository itemRepository;
     private final UserService userService;
+    private final BookingRepository bookingRepository;
+    private final CommentRepository commentRepository;
 
-    @Autowired
-    public ItemService(UserService userService) {
-        this.userService = userService;
-    }
-
+    @Transactional
     public ItemDto create(Long userId, ItemDto itemDto) {
-        log.info("Создание вещи пользователем ID={}: {}", userId, itemDto);
-        validateUserId(userId);
         validateItemDto(itemDto);
+        User owner = userService.getUserById(userId);
         Item item = ItemMapper.toItem(itemDto);
-        item.setId(idGenerator.getAndIncrement());
-        item.setOwner(userService.getUserById(userId));
-        items.put(item.getId(), item);
-        log.info("Вещь создана с ID={}", item.getId());
-        return ItemMapper.toItemDto(item);
+        item.setOwner(owner);
+        Item saved = itemRepository.save(item);
+        return ItemMapper.toItemDto(saved);
     }
 
+    @Transactional
     public ItemDto update(Long userId, Long itemId, ItemDto itemDto) {
-        log.info("Обновление вещи ID={} пользователем ID={}: {}", itemId, userId, itemDto);
-        validateUserId(userId);
-        Item item = getItemOrThrow(itemId);
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new NotFoundException("Вещь с ID " + itemId + " не найдена"));
         if (!item.getOwner().getId().equals(userId)) {
-            log.warn("Попытка обновить чужую вещь ID={}, владелец={}", itemId, item.getOwner().getId());
             throw new NotFoundException("Вещь не найдена");
         }
-
         if (itemDto.getName() != null && !itemDto.getName().isBlank()) {
             item.setName(itemDto.getName());
         }
@@ -62,80 +59,75 @@ public class ItemService {
         if (itemDto.getAvailable() != null) {
             item.setAvailable(itemDto.getAvailable());
         }
-
-        log.info("Вещь обновлена: {}", item);
-        return ItemMapper.toItemDto(item);
+        return ItemMapper.toItemDto(itemRepository.save(item));
     }
 
-    public ItemDto getById(Long itemId) {
-        Item item = items.get(itemId);
-        if (item == null) {
-            log.warn("Вещь с ID={} не найдена", itemId);
-            throw new NotFoundException("Вещь с ID " + itemId + " не найдена");
-        }
-        log.info("Вещь найдена: {}", item);
-        return ItemMapper.toItemDto(item);
+
+    @Transactional(readOnly = true)
+    public ItemResponseDto getByIdWithBookingsAndComments(Long itemId, Long userId) {
+        Item item = getItemById(itemId);
+        boolean isOwner = (userId != null) && item.getOwner().getId().equals(userId);
+        return ItemResponseMapper.toItemResponseDto(item, bookingRepository, commentRepository, isOwner);
     }
 
-    public List<ItemDto> getOwnerItems(Long userId) {
-        log.info("Получение всех вещей владельца ID={}", userId);
+    @Transactional(readOnly = true)
+    public List<ItemResponseDto> getOwnerItemsWithBookingsAndComments(Long userId) {
         userService.getUserById(userId);
-        List<ItemDto> ownerItems = items.values().stream()
-                .filter(item -> item.getOwner().getId().equals(userId))
-                .map(ItemMapper::toItemDto)
+        return itemRepository.findByOwner_IdOrderById(userId).stream()
+                .map(item -> ItemResponseMapper.toItemResponseDto(item, bookingRepository, commentRepository, true))
                 .collect(Collectors.toList());
-        log.info("Найдено {} вещей", ownerItems.size());
-        return ownerItems;
     }
 
+    @Transactional(readOnly = true)
     public List<ItemDto> search(String text) {
         if (text == null || text.isBlank()) {
-            log.info("Поиск по пустому тексту — возвращаем пустой список");
             return Collections.emptyList();
         }
-        String query = text.toLowerCase();
-        List<ItemDto> results = items.values().stream()
-                .filter(Item::getAvailable)
-                .filter(item -> item.getName().toLowerCase().contains(query) ||
-                        item.getDescription().toLowerCase().contains(query))
+        return itemRepository.search(text).stream()
                 .map(ItemMapper::toItemDto)
                 .collect(Collectors.toList());
-        log.info("Поиск по тексту '{}': найдено {} результатов", text, results.size());
-        return results;
     }
 
-    private void validateUserId(Long userId) {
-        if (userId == null || userId <= 0) {
-            log.error("Некорректный идентификатор пользователя: {}", userId);
-            throw new ValidationException("Некорректный идентификатор пользователя");
+    @Transactional
+    public CommentDto addComment(Long userId, Long itemId, CommentDto commentDto) {
+
+        User author = userService.getUserById(userId);
+        Item item = getItemById(itemId);
+        boolean hasApprovedAndFinishedBooking = bookingRepository.existsByItemIdAndBookerIdAndEndIsBeforeAndStatus(
+                itemId, userId, LocalDateTime.now(), ru.practicum.shareit.booking.model.BookingStatus.APPROVED
+        );
+
+        if (!hasApprovedAndFinishedBooking) {
+            throw new ValidationException("Нельзя оставить отзыв без завершённого бронирования");
         }
+
+        Comment comment = new Comment();
+        String text = (commentDto != null && commentDto.getText() != null) ? commentDto.getText() : "";
+        comment.setText(text);
+        comment.setItem(item);
+        comment.setAuthor(author);
+        comment.setCreated(LocalDateTime.now());
+
+        return CommentMapper.toCommentDto(commentRepository.save(comment));
+    }
+
+    public Item getItemById(Long id) {
+        return itemRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Вещь с ID " + id + " не найдена"));
     }
 
     private void validateItemDto(ItemDto itemDto) {
         if (itemDto == null) {
-            log.error("Данные вещи не могут быть null");
             throw new ValidationException("Данные вещи не могут быть null");
         }
         if (itemDto.getName() == null || itemDto.getName().isBlank()) {
-            log.error("Название вещи не может быть пустым");
             throw new ValidationException("Название вещи не может быть пустым");
         }
         if (itemDto.getDescription() == null || itemDto.getDescription().isBlank()) {
-            log.error("Описание вещи не может быть пустым");
             throw new ValidationException("Описание вещи не может быть пустым");
         }
         if (itemDto.getAvailable() == null) {
-            log.error("Статус доступности (available) обязателен");
             throw new ValidationException("Статус доступности (available) обязателен");
         }
-    }
-
-    private Item getItemOrThrow(Long itemId) {
-        Item item = items.get(itemId);
-        if (item == null) {
-            log.warn("Вещь с ID={} не найдена", itemId);
-            throw new NotFoundException("Вещь с ID " + itemId + " не найдена");
-        }
-        return item;
     }
 }

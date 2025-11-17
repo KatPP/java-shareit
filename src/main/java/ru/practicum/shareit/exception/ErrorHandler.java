@@ -1,8 +1,8 @@
 package ru.practicum.shareit.exception;
 
-import jakarta.validation.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -20,6 +20,7 @@ public class ErrorHandler {
     /**
      * Обрабатывает исключения валидации, возникающие при нарушении бизнес-правил
      * (например, пустое имя или некорректный email).
+     *
      * @param e исключение валидации
      * @return объект с сообщением об ошибке
      */
@@ -34,6 +35,7 @@ public class ErrorHandler {
      * Обрабатывает исключения валидации, возникающие при нарушении ограничений,
      * заданных аннотациями валидации (например, {@code @NotBlank}, {@code @Email})
      * в DTO-объектах при использовании {@code @Valid}.
+     *
      * @param e исключение валидации аргументов метода контроллера
      * @return объект с первым найденным сообщением об ошибке
      */
@@ -51,6 +53,7 @@ public class ErrorHandler {
     /**
      * Обрабатывает конфликты данных, например, попытку создания пользователя
      * с уже существующим email.
+     *
      * @param e исключение конфликта
      * @return объект с сообщением об ошибке
      */
@@ -64,6 +67,7 @@ public class ErrorHandler {
     /**
      * Обрабатывает ситуации, когда запрашиваемая сущность (пользователь, вещь и т.д.)
      * не найдена в системе.
+     *
      * @param e исключение "не найдено"
      * @return объект с сообщением об ошибке
      */
@@ -78,6 +82,7 @@ public class ErrorHandler {
      * Обрабатывает все остальные непредвиденные исключения.
      * В целях безопасности клиенту возвращается общее сообщение,
      * а полная информация об ошибке логируется на сервере.
+     *
      * @param e любое неперехваченное исключение
      * @return объект с общим сообщением об ошибке
      */
@@ -86,5 +91,18 @@ public class ErrorHandler {
     public ErrorResponse handleGeneral(Exception e) {
         log.error("Внутренняя ошибка сервера", e);
         return new ErrorResponse("Произошла внутренняя ошибка сервера");
+    }
+
+    @ExceptionHandler(HeaderValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleHeaderValidation(HeaderValidationException e) {
+        log.error("Ошибка валидации заголовка: {}", e.getMessage());
+        return new ErrorResponse(e.getMessage());
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(e.getMessage()));
     }
 }
