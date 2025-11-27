@@ -1,3 +1,4 @@
 FROM eclipse-temurin:21-jre-jammy
-COPY shareit-server/target/shareit-server-0.0.1-SNAPSHOT.jar app.jar
-ENTRYPOINT ["java", "-jar", "/app.jar"]
+VOLUME /tmp
+COPY shareit-server/target/*.jar app.jar
+ENTRYPOINT ["sh", "-c", "java ${JAVA_OPTS} -jar /app.jar"]
