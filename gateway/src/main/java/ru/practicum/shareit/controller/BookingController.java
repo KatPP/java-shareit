@@ -1,7 +1,7 @@
 package ru.practicum.shareit.controller;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.client.BookingClient;
 import ru.practicum.shareit.exception.HeaderValidationException;
@@ -10,7 +10,6 @@ import ru.practicum.shareit.exception.HeaderValidationException;
 @RequestMapping("/bookings")
 @RequiredArgsConstructor
 public class BookingController {
-
     private final BookingClient bookingClient;
 
     private Long parseUserIdHeader(String userIdHeader) {
@@ -29,38 +28,38 @@ public class BookingController {
     }
 
     @PostMapping
-    public Object create(@RequestHeader("X-Sharer-User-Id") String userIdHeader,
-                         @Valid @RequestBody Object bookingDto) {
+    public ResponseEntity<Object> create(@RequestHeader("X-Sharer-User-Id") String userIdHeader,
+                                         @RequestBody Object bookingDto) {
         Long userId = parseUserIdHeader(userIdHeader);
-        return bookingClient.create(userId, bookingDto).getBody();
+        return bookingClient.create(userId, bookingDto);
     }
 
     @PatchMapping("/{bookingId}")
-    public Object approve(@RequestHeader("X-Sharer-User-Id") String userIdHeader,
-                          @PathVariable Long bookingId,
-                          @RequestParam Boolean approved) {
+    public ResponseEntity<Object> approve(@RequestHeader("X-Sharer-User-Id") String userIdHeader,
+                                          @PathVariable Long bookingId,
+                                          @RequestParam Boolean approved) {
         Long userId = parseUserIdHeader(userIdHeader);
-        return bookingClient.approve(userId, bookingId, approved).getBody();
+        return bookingClient.approve(userId, bookingId, approved);
     }
 
     @GetMapping("/{bookingId}")
-    public Object get(@RequestHeader("X-Sharer-User-Id") String userIdHeader,
-                      @PathVariable Long bookingId) {
+    public ResponseEntity<Object> get(@RequestHeader("X-Sharer-User-Id") String userIdHeader,
+                                      @PathVariable Long bookingId) {
         Long userId = parseUserIdHeader(userIdHeader);
-        return bookingClient.getBooking(userId, bookingId).getBody();
+        return bookingClient.getBooking(userId, bookingId);
     }
 
     @GetMapping
-    public Object getAllByBooker(@RequestHeader("X-Sharer-User-Id") String userIdHeader,
-                                 @RequestParam(defaultValue = "ALL") String state) {
+    public ResponseEntity<Object> getAllByBooker(@RequestHeader("X-Sharer-User-Id") String userIdHeader,
+                                                 @RequestParam(defaultValue = "ALL") String state) {
         Long userId = parseUserIdHeader(userIdHeader);
-        return bookingClient.getAllByBooker(userId, state).getBody();
+        return bookingClient.getAllByBooker(userId, state);
     }
 
     @GetMapping("/owner")
-    public Object getAllByOwner(@RequestHeader("X-Sharer-User-Id") String userIdHeader,
-                                @RequestParam(defaultValue = "ALL") String state) {
+    public ResponseEntity<Object> getAllByOwner(@RequestHeader("X-Sharer-User-Id") String userIdHeader,
+                                                @RequestParam(defaultValue = "ALL") String state) {
         Long userId = parseUserIdHeader(userIdHeader);
-        return bookingClient.getAllByOwner(userId, state).getBody();
+        return bookingClient.getAllByOwner(userId, state);
     }
 }
