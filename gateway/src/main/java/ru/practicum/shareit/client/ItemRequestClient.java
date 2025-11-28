@@ -1,53 +1,72 @@
 package ru.practicum.shareit.client;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import org.apache.hc.client5.http.classic.HttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
 @Service
-@RequiredArgsConstructor
-public class ItemRequestClient {
-    private final RestTemplateBuilder builder;
-    @Value("${shareit.server.url}")
-    private String serverUrl;
+public class ItemRequestClient extends BaseClient {
+    private static final String API_PREFIX = "/requests";
 
-    public ResponseEntity<Object> create(Long userId, Object requestDto) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Sharer-User-Id", String.valueOf(userId));
-        HttpEntity<Object> request = new HttpEntity<>(requestDto, headers);
-        return getRestTemplate().postForEntity("/requests", request, Object.class);
-    }
-
-    public ResponseEntity<Object> getOwn(Long userId) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Sharer-User-Id", String.valueOf(userId));
-        HttpEntity<Void> request = new HttpEntity<>(headers);
-        return getRestTemplate().exchange("/requests", org.springframework.http.HttpMethod.GET, request, Object.class);
-    }
-
-    public ResponseEntity<Object> getAll(Long userId, int from, int size) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Sharer-User-Id", String.valueOf(userId));
-        HttpEntity<Void> request = new HttpEntity<>(headers);
-        String url = String.format("/requests/all?from=%d&size=%d", from, size);
-        return getRestTemplate().exchange(url, org.springframework.http.HttpMethod.GET, request, Object.class);
-    }
-
-    public ResponseEntity<Object> getById(Long userId, Long requestId) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Sharer-User-Id", String.valueOf(userId));
-        HttpEntity<Void> request = new HttpEntity<>(headers);
-        return getRestTemplate().exchange("/requests/" + requestId, org.springframework.http.HttpMethod.GET, request, Object.class);
+    public ItemRequestClient(RestTemplateBuilder builder) {
+        super(builder);
     }
 
     private org.springframework.web.client.RestTemplate getRestTemplate() {
+        var httpClient = HttpClients.createDefault();
+        var requestFactory = new HttpComponentsClientHttpRequestFactory((HttpClient) httpClient);
         return builder
                 .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl))
+                .requestFactory(() -> requestFactory)
                 .build();
+    }
+
+    public ResponseEntity<Object> create(Long userId, Object requestDto) {
+        return getRestTemplate().exchange(
+                API_PREFIX,
+                org.springframework.http.HttpMethod.POST,
+                createEntityWithHeader(requestDto, userId),
+                Object.class
+        );
+    }
+
+    public ResponseEntity<Object> getOwn(Long userId) {
+        var headers = new org.springframework.http.HttpHeaders();
+        headers.set("X-Sharer-User-Id", userId.toString());
+        var entity = new org.springframework.http.HttpEntity<>(headers);
+        return getRestTemplate().exchange(
+                API_PREFIX,
+                org.springframework.http.HttpMethod.GET,
+                entity,
+                Object.class
+        );
+    }
+
+    public ResponseEntity<Object> getAll(Long userId, int from, int size) {
+        var headers = new org.springframework.http.HttpHeaders();
+        headers.set("X-Sharer-User-Id", userId.toString());
+        var entity = new org.springframework.http.HttpEntity<>(headers);
+        return getRestTemplate().exchange(
+                String.format("%s/all?from=%d&size=%d", API_PREFIX, from, size),
+                org.springframework.http.HttpMethod.GET,
+                entity,
+                Object.class
+        );
+    }
+
+    public ResponseEntity<Object> getById(Long userId, Long requestId) {
+        var headers = new org.springframework.http.HttpHeaders();
+        headers.set("X-Sharer-User-Id", userId.toString());
+        var entity = new org.springframework.http.HttpEntity<>(headers);
+        return getRestTemplate().exchange(
+                API_PREFIX + "/" + requestId,
+                org.springframework.http.HttpMethod.GET,
+                entity,
+                Object.class
+        );
     }
 }

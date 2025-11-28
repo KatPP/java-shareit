@@ -1,64 +1,85 @@
 package ru.practicum.shareit.client;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import org.apache.hc.client5.http.classic.HttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
 @Service
-@RequiredArgsConstructor
-public class BookingClient {
-    private final RestTemplateBuilder builder;
-    @Value("${shareit.server.url}")
-    private String serverUrl;
+public class BookingClient extends BaseClient {
+    private static final String API_PREFIX = "/bookings";
 
-    public ResponseEntity<Object> create(Long bookerId, Object bookingDto) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Sharer-User-Id", String.valueOf(bookerId));
-        HttpEntity<Object> request = new HttpEntity<>(bookingDto, headers);
-        return getRestTemplate().postForEntity("/bookings", request, Object.class);
+    public BookingClient(RestTemplateBuilder builder) {
+        super(builder);
     }
 
-    public ResponseEntity<Object> approve(Long ownerId, Long bookingId, Boolean approved) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Sharer-User-Id", String.valueOf(ownerId));
-        HttpEntity<Void> request = new HttpEntity<>(headers);
+    private org.springframework.web.client.RestTemplate getRestTemplate() {
+        var httpClient = HttpClients.createDefault();
+        var requestFactory = new HttpComponentsClientHttpRequestFactory((HttpClient) httpClient);
+        return builder
+                .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl))
+                .requestFactory(() -> requestFactory)
+                .build();
+    }
+
+    public ResponseEntity<Object> create(Long userId, Object bookingDto) {
         return getRestTemplate().exchange(
-                "/bookings/" + bookingId + "?approved=" + approved,
+                API_PREFIX,
+                org.springframework.http.HttpMethod.POST,
+                createEntityWithHeader(bookingDto, userId),
+                Object.class
+        );
+    }
+
+    public ResponseEntity<Object> approve(Long userId, Long bookingId, Boolean approved) {
+        String url = String.format("%s/%d?approved=%s", API_PREFIX, bookingId, approved);
+        var headers = new org.springframework.http.HttpHeaders();
+        headers.set("X-Sharer-User-Id", userId.toString());
+        var entity = new org.springframework.http.HttpEntity<>(headers);
+        return getRestTemplate().exchange(
+                url,
                 org.springframework.http.HttpMethod.PATCH,
-                request,
+                entity,
                 Object.class
         );
     }
 
     public ResponseEntity<Object> getBooking(Long userId, Long bookingId) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Sharer-User-Id", String.valueOf(userId));
-        HttpEntity<Void> request = new HttpEntity<>(headers);
-        return getRestTemplate().exchange("/bookings/" + bookingId, org.springframework.http.HttpMethod.GET, request, Object.class);
+        var headers = new org.springframework.http.HttpHeaders();
+        headers.set("X-Sharer-User-Id", userId.toString());
+        var entity = new org.springframework.http.HttpEntity<>(headers);
+        return getRestTemplate().exchange(
+                API_PREFIX + "/" + bookingId,
+                org.springframework.http.HttpMethod.GET,
+                entity,
+                Object.class
+        );
     }
 
-    public ResponseEntity<Object> getAllByBooker(Long bookerId, String state) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Sharer-User-Id", String.valueOf(bookerId));
-        HttpEntity<Void> request = new HttpEntity<>(headers);
-        return getRestTemplate().exchange("/bookings?state=" + state, org.springframework.http.HttpMethod.GET, request, Object.class);
+    public ResponseEntity<Object> getAllByBooker(Long userId, String state) {
+        var headers = new org.springframework.http.HttpHeaders();
+        headers.set("X-Sharer-User-Id", userId.toString());
+        var entity = new org.springframework.http.HttpEntity<>(headers);
+        return getRestTemplate().exchange(
+                API_PREFIX + "?state=" + state,
+                org.springframework.http.HttpMethod.GET,
+                entity,
+                Object.class
+        );
     }
 
-    public ResponseEntity<Object> getAllByOwner(Long ownerId, String state) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Sharer-User-Id", String.valueOf(ownerId));
-        HttpEntity<Void> request = new HttpEntity<>(headers);
-        return getRestTemplate().exchange("/bookings/owner?state=" + state, org.springframework.http.HttpMethod.GET, request, Object.class);
-    }
-
-    private org.springframework.web.client.RestTemplate getRestTemplate() {
-        return builder
-                .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl))
-                .build();
+    public ResponseEntity<Object> getAllByOwner(Long userId, String state) {
+        var headers = new org.springframework.http.HttpHeaders();
+        headers.set("X-Sharer-User-Id", userId.toString());
+        var entity = new org.springframework.http.HttpEntity<>(headers);
+        return getRestTemplate().exchange(
+                API_PREFIX + "/owner?state=" + state,
+                org.springframework.http.HttpMethod.GET,
+                entity,
+                Object.class
+        );
     }
 }

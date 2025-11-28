@@ -11,14 +11,16 @@
     <artifactId>shareit-gateway</artifactId>
     <dependencies>
         <!-- Зависимость для основного кода -->
-        <dependency>
-            <groupId>ru.practicum</groupId>
-            <artifactId>shareit-server</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <version>5.2.1</version>
         </dependency>
 
         <!-- Зависимость для тестов -->

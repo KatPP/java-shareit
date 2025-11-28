@@ -1,45 +1,49 @@
 package ru.practicum.shareit.client;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import org.apache.hc.client5.http.classic.HttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
 @Service
-@RequiredArgsConstructor
-public class UserClient {
-    private final RestTemplateBuilder builder;
-    @Value("${shareit.server.url}")
-    private String serverUrl;
+public class UserClient extends BaseClient {
+    private static final String API_PREFIX = "/users";
+
+    public UserClient(RestTemplateBuilder builder) {
+        super(builder);
+    }
+
+    private org.springframework.web.client.RestTemplate getRestTemplate() {
+        var httpClient = HttpClients.createDefault();
+        var requestFactory = new HttpComponentsClientHttpRequestFactory((HttpClient) httpClient);
+        return builder
+                .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl))
+                .requestFactory(() -> requestFactory)
+                .build();
+    }
 
     public ResponseEntity<Object> create(Object userDto) {
-        return getRestTemplate().postForEntity("/users", userDto, Object.class);
+        return getRestTemplate().postForEntity(API_PREFIX, userDto, Object.class);
     }
 
     public ResponseEntity<Object> update(Long userId, Object userDto) {
         return getRestTemplate().exchange(
-                "/users/" + userId,
+                API_PREFIX + "/" + userId,
                 org.springframework.http.HttpMethod.PATCH,
-                new HttpEntity<>(userDto),
+                mapToHttpEntity(userDto),
                 Object.class
         );
     }
 
     public ResponseEntity<Object> getById(Long userId) {
-        return getRestTemplate().getForEntity("/users/" + userId, Object.class);
+        return getRestTemplate().getForEntity(API_PREFIX + "/" + userId, Object.class);
     }
 
     public ResponseEntity<Object> delete(Long userId) {
-        getRestTemplate().delete("/users/" + userId);
+        getRestTemplate().delete(API_PREFIX + "/" + userId);
         return ResponseEntity.noContent().build();
-    }
-
-    private org.springframework.web.client.RestTemplate getRestTemplate() {
-        return builder
-                .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl))
-                .build();
     }
 }

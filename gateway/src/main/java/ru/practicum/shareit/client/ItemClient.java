@@ -1,70 +1,84 @@
 package ru.practicum.shareit.client;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import org.apache.hc.client5.http.classic.HttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
 @Service
-@RequiredArgsConstructor
-public class ItemClient {
-    private final RestTemplateBuilder builder;
-    @Value("${shareit.server.url}")
-    private String serverUrl;
+public class ItemClient extends BaseClient {
+    private static final String API_PREFIX = "/items";
+
+    public ItemClient(RestTemplateBuilder builder) {
+        super(builder);
+    }
+
+    private org.springframework.web.client.RestTemplate getRestTemplate() {
+        var httpClient = HttpClients.createDefault();
+        var requestFactory = new HttpComponentsClientHttpRequestFactory((HttpClient) httpClient);
+        return builder
+                .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl))
+                .requestFactory(() -> requestFactory)
+                .build();
+    }
 
     public ResponseEntity<Object> create(Long userId, Object itemDto) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Sharer-User-Id", String.valueOf(userId));
-        HttpEntity<Object> request = new HttpEntity<>(itemDto, headers);
-        return getRestTemplate().postForEntity("/items", request, Object.class);
+        return getRestTemplate().exchange(
+                API_PREFIX,
+                org.springframework.http.HttpMethod.POST,
+                createEntityWithHeader(itemDto, userId),
+                Object.class
+        );
     }
 
     public ResponseEntity<Object> update(Long userId, Long itemId, Object itemDto) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Sharer-User-Id", String.valueOf(userId));
-        HttpEntity<Object> request = new HttpEntity<>(itemDto, headers);
         return getRestTemplate().exchange(
-                "/items/" + itemId,
+                API_PREFIX + "/" + itemId,
                 org.springframework.http.HttpMethod.PATCH,
-                request,
+                createEntityWithHeader(itemDto, userId),
                 Object.class
         );
     }
 
     public ResponseEntity<Object> getById(Long userId, Long itemId) {
-        HttpHeaders headers = new HttpHeaders();
+        var headers = new org.springframework.http.HttpHeaders();
         if (userId != null) {
-            headers.set("X-Sharer-User-Id", String.valueOf(userId));
+            headers.set("X-Sharer-User-Id", userId.toString());
         }
-        HttpEntity<Void> request = new HttpEntity<>(headers);
-        return getRestTemplate().exchange("/items/" + itemId, org.springframework.http.HttpMethod.GET, request, Object.class);
+        var entity = new org.springframework.http.HttpEntity<>(headers);
+        return getRestTemplate().exchange(
+                API_PREFIX + "/" + itemId,
+                org.springframework.http.HttpMethod.GET,
+                entity,
+                Object.class
+        );
     }
 
     public ResponseEntity<Object> getOwnerItems(Long userId) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Sharer-User-Id", String.valueOf(userId));
-        HttpEntity<Void> request = new HttpEntity<>(headers);
-        return getRestTemplate().exchange("/items", org.springframework.http.HttpMethod.GET, request, Object.class);
+        var headers = new org.springframework.http.HttpHeaders();
+        headers.set("X-Sharer-User-Id", userId.toString());
+        var entity = new org.springframework.http.HttpEntity<>(headers);
+        return getRestTemplate().exchange(
+                API_PREFIX,
+                org.springframework.http.HttpMethod.GET,
+                entity,
+                Object.class
+        );
     }
 
     public ResponseEntity<Object> search(String text) {
-        return getRestTemplate().getForEntity("/items/search?text=" + text, Object.class);
+        return getRestTemplate().getForEntity(API_PREFIX + "/search?text=" + text, Object.class);
     }
 
     public ResponseEntity<Object> addComment(Long userId, Long itemId, Object commentDto) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Sharer-User-Id", String.valueOf(userId));
-        HttpEntity<Object> request = new HttpEntity<>(commentDto, headers);
-        return getRestTemplate().postForEntity("/items/" + itemId + "/comment", request, Object.class);
-    }
-
-    private org.springframework.web.client.RestTemplate getRestTemplate() {
-        return builder
-                .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl))
-                .build();
+        return getRestTemplate().exchange(
+                API_PREFIX + "/" + itemId + "/comment",
+                org.springframework.http.HttpMethod.POST,
+                createEntityWithHeader(commentDto, userId),
+                Object.class
+        );
     }
 }
